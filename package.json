@@ -1,0 +1,16 @@
+{
+  "name": "ordemflow-tech",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "setup": "npm --prefix web install",
+    "dev": "npm --prefix web run dev",
+    "build": "npm --prefix web run build",
+    "preview": "npm --prefix web run preview",
+    "test": "npm --prefix web run test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.9",
+    "zod": "^3.23.8"
+  }
+}
