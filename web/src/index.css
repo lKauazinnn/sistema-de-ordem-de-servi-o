@@ -284,3 +284,160 @@ body {
 .prioridade-media { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; }
 .prioridade-alta { background: rgba(251, 191, 36, 0.12); color: #fde68a; }
 .prioridade-urgente { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
+
+/* ── Light Theme ── */
+:root[data-theme="light"] {
+  --bg-primary: #f1f5f9;
+  --bg-surface: rgba(255, 255, 255, 0.95);
+  --border-subtle: rgba(148, 163, 184, 0.45);
+  --border-accent: rgba(6, 182, 212, 0.35);
+  --accent: #0891b2;
+  --accent-glow: rgba(6, 182, 212, 0.12);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  color-scheme: light;
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] body {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 48%, #e8eef5 100%);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 5% 8%, rgba(6, 182, 212, 0.06), transparent),
+    radial-gradient(ellipse 60% 50% at 95% 90%, rgba(99, 102, 241, 0.04), transparent);
+  background-attachment: fixed;
+}
+
+html[data-theme="light"] .card {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+}
+
+html[data-theme="light"] .card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(6, 182, 212, 0.15);
+}
+
+html[data-theme="light"] .card-static {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+}
+
+html[data-theme="light"] .glass-header {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 0 rgba(148, 163, 184, 0.3), 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme="light"] .table-pro thead th {
+  background: rgba(241, 245, 249, 0.98);
+  color: #475569;
+}
+
+html[data-theme="light"] .table-pro tbody td { color: #1e293b; }
+
+html[data-theme="light"] .table-pro tbody tr {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+html[data-theme="light"] .table-pro tbody tr:hover {
+  background: rgba(6, 182, 212, 0.04);
+}
+
+html[data-theme="light"] .input-dark {
+  background: rgba(255, 255, 255, 0.9);
+  color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+html[data-theme="light"] .input-dark::placeholder { color: rgba(100, 116, 139, 0.6); }
+
+html[data-theme="light"] .btn-ghost {
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+html[data-theme="light"] .btn-ghost:hover {
+  background: rgba(148, 163, 184, 0.15);
+  color: #1e293b;
+}
+
+html[data-theme="light"] .skeleton {
+  background: linear-gradient(90deg, rgba(203, 213, 225, 0.6) 25%, rgba(226, 232, 240, 0.8) 50%, rgba(203, 213, 225, 0.6) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+html[data-theme="light"] .login-mesh {
+  background:
+    radial-gradient(circle at 8% 18%, rgba(6, 182, 212, 0.15), transparent 36%),
+    radial-gradient(circle at 88% 80%, rgba(99, 102, 241, 0.08), transparent 36%),
+    linear-gradient(145deg, #e2e8f0 0%, #f1f5f9 44%, #f8fafc 100%);
+}
+
+/* Text color overrides */
+html[data-theme="light"] .text-slate-50,
+html[data-theme="light"] .text-slate-100 { color: #1e293b; }
+html[data-theme="light"] .text-slate-200 { color: #334155; }
+html[data-theme="light"] .text-slate-300 { color: #475569; }
+html[data-theme="light"] .text-slate-400 { color: #64748b; }
+html[data-theme="light"] .text-cyan-100  { color: #0e7490; }
+html[data-theme="light"] .text-cyan-300  { color: #0891b2; }
+html[data-theme="light"] .text-cyan-300\/60 { color: rgba(8, 145, 178, 0.6); }
+
+/* Header buttons */
+html[data-theme="light"] .bg-slate-800\/80 {
+  background: rgba(241, 245, 249, 0.9) !important;
+}
+html[data-theme="light"] .hover\:bg-slate-700\/80:hover {
+  background: rgba(226, 232, 240, 0.9) !important;
+}
+html[data-theme="light"] .ring-slate-700\/70 {
+  --tw-ring-color: rgba(148, 163, 184, 0.5);
+}
+html[data-theme="light"] .text-slate-200 { color: #334155; }
+html[data-theme="light"] .hover\:text-white:hover { color: #0f172a !important; }
+
+/* ── Black Theme ── */
+:root[data-theme="black"] {
+  --bg-primary: #000000;
+  --bg-surface: rgba(10, 10, 10, 0.95);
+  --border-subtle: rgba(45, 45, 45, 0.85);
+  --border-accent: rgba(34, 211, 238, 0.28);
+  --accent-glow: rgba(34, 211, 238, 0.10);
+}
+
+html[data-theme="black"] body {
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.04), transparent 28%),
+    radial-gradient(circle at 85% 12%, rgba(59, 130, 246, 0.03), transparent 24%),
+    linear-gradient(180deg, #000000 0%, #000000 100%);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 5% 8%, rgba(34, 211, 238, 0.03), transparent),
+    radial-gradient(ellipse 60% 50% at 95% 90%, rgba(99, 102, 241, 0.02), transparent);
+  background-attachment: fixed;
+}
+
+html[data-theme="black"] .card {
+  background: linear-gradient(180deg, rgba(14, 14, 14, 0.99) 0%, rgba(6, 6, 6, 0.98) 100%);
+}
+
+html[data-theme="black"] .card-static {
+  background: linear-gradient(180deg, rgba(14, 14, 14, 0.99) 0%, rgba(6, 6, 6, 0.98) 100%);
+}
+
+html[data-theme="black"] .glass-header {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.96) 100%);
+}
+
+html[data-theme="black"] .table-pro thead th {
+  background: rgba(4, 4, 4, 0.98);
+}
+
+html[data-theme="black"] .table-pro tbody tr {
+  background: rgba(10, 10, 10, 0.4);
+}
+
+html[data-theme="black"] .login-mesh {
+  background:
+    radial-gradient(circle at 8% 18%, rgba(34, 211, 238, 0.12), transparent 36%),
+    radial-gradient(circle at 88% 80%, rgba(99, 102, 241, 0.06), transparent 36%),
+    linear-gradient(145deg, #000000 0%, #050505 44%, #020202 100%);
+}

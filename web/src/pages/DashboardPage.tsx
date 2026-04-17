@@ -21,9 +21,12 @@ import {
 } from "recharts";
 import {
   ArrowDownRight, ArrowUpRight, BarChart3, CreditCard, DollarSign, FileText,
-  Layers, TrendingUp, Activity
+  Layers, TrendingUp, Activity, FolderOpen, Settings, CheckCircle, XCircle, Clock, ClipboardList,
+  Package, AlertTriangle, Boxes
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { getFaturamentoPorFormaPagamento, getFaturamentoResumo, getOsPorTecnico, getReceitaMensal, getResumoDashboard, getUltimasNotasServico } from "../modules/dashboard/service";
+import { listProdutos } from "../modules/estoque/service";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 
 const CHART_COLORS = ["#22d3ee", "#6366f1", "#34d399", "#f59e0b", "#f43f5e", "#a78bfa", "#fb923c"];
@@ -36,12 +39,12 @@ const tooltipStyle = {
   boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)"
 } satisfies CSSProperties;
 
-const STATUS_ICONS: Record<string, { icon: string; color: string }> = {
-  "Abertas": { icon: "📂", color: "text-cyan-300" },
-  "Em andamento": { icon: "⚙️", color: "text-blue-300" },
-  "Concluídas": { icon: "✅", color: "text-emerald-300" },
-  "Canceladas": { icon: "❌", color: "text-rose-300" },
-  "Aguardando aprovação": { icon: "⏳", color: "text-amber-300" }
+const STATUS_ICONS: Record<string, { icon: LucideIcon; color: string }> = {
+  "Abertas": { icon: FolderOpen, color: "text-cyan-300" },
+  "Em andamento": { icon: Settings, color: "text-blue-300" },
+  "Concluídas": { icon: CheckCircle, color: "text-emerald-300" },
+  "Canceladas": { icon: XCircle, color: "text-rose-300" },
+  "Aguardando aprovação": { icon: Clock, color: "text-amber-300" }
 };
 
 export function DashboardPage() {
@@ -55,6 +58,7 @@ export function DashboardPage() {
   useRealtimeChannel(["dashboard-faturamento-resumo"], "notas_servico");
   useRealtimeChannel(["dashboard-faturamento-forma"], "notas_servico");
   useRealtimeChannel(["dashboard-ultimas-notas"], "notas_servico");
+  useRealtimeChannel(["produtos"], "produtos");
 
   const { data: resumo, isLoading: loadingResumo, isError: erroResumo, error: resumoError } = useQuery({
     queryKey: ["dashboard-resumo", periodoResumo],
@@ -84,6 +88,11 @@ export function DashboardPage() {
   const { data: ultimasNotas, isLoading: loadingUltimasNotas, isError: erroUltimasNotas, error: ultimasNotasError } = useQuery({
     queryKey: ["dashboard-ultimas-notas"],
     queryFn: () => getUltimasNotasServico(8)
+  });
+
+  const { data: produtos, isLoading: loadingProdutos } = useQuery({
+    queryKey: ["produtos"],
+    queryFn: listProdutos
   });
 
   const cards = [
@@ -119,6 +128,14 @@ export function DashboardPage() {
     () => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }),
     []
   );
+
+  const estoqueStats = useMemo(() => {
+    const lista = produtos ?? [];
+    const totalProdutos = lista.length;
+    const itensAbaixoMinimo = lista.filter((p) => p.estoque_atual <= p.estoque_minimo);
+    const valorEstoque = lista.reduce((acc, p) => acc + p.estoque_atual * p.preco_custo, 0);
+    return { totalProdutos, itensAbaixoMinimo, valorEstoque };
+  }, [produtos]);
 
   const receitaComposta = useMemo(() => {
     let acumulado = 0;
@@ -188,10 +205,11 @@ export function DashboardPage() {
       {/* Status Cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((card, index) => {
-          const meta = STATUS_ICONS[card.label] ?? { icon: "📋", color: "text-slate-300" };
+          const meta = STATUS_ICONS[card.label] ?? { icon: ClipboardList, color: "text-slate-300" };
+          const Icon = meta.icon;
           return (
             <div key={card.label} className="card rise-in flex items-center gap-4 p-4" style={{ animationDelay: `${50 + index * 40}ms` }}>
-              <span className="text-2xl">{meta.icon}</span>
+              <span className={`${meta.color}`}><Icon size={28} /></span>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-medium text-slate-300">{card.label}</p>
                 <p className={`text-2xl font-bold tracking-tight ${meta.color}`}>{card.value}</p>
@@ -448,6 +466,78 @@ export function DashboardPage() {
             )}
           </div>
         </div>
+      </section>
+
+      {/* Estoque Section */}
+      <section className="space-y-4">
+        <div className="rise-in flex items-center justify-between gap-3" style={{ animationDelay: "800ms" }}>
+          <div>
+            <h3 className="font-display text-lg font-bold text-white">Estoque</h3>
+            <p className="text-xs text-slate-400">Visão geral do inventário</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="card rise-in flex items-center gap-4 p-4" style={{ animationDelay: "840ms" }}>
+            <span className="text-cyan-300"><Boxes size={28} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-300">Total de produtos</p>
+              <p className="text-2xl font-bold tracking-tight text-cyan-300">
+                {loadingProdutos ? "..." : estoqueStats.totalProdutos}
+              </p>
+            </div>
+          </div>
+          <div className="card rise-in flex items-center gap-4 p-4" style={{ animationDelay: "880ms" }}>
+            <span className="text-rose-300"><AlertTriangle size={28} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-300">Estoque baixo</p>
+              <p className="text-2xl font-bold tracking-tight text-rose-300">
+                {loadingProdutos ? "..." : estoqueStats.itensAbaixoMinimo.length}
+              </p>
+            </div>
+          </div>
+          <div className="card rise-in flex items-center gap-4 p-4" style={{ animationDelay: "920ms" }}>
+            <span className="text-emerald-300"><Package size={28} /></span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-slate-300">Valor em estoque</p>
+              <p className="text-xl font-bold tracking-tight text-emerald-300">
+                {loadingProdutos ? "..." : moneyFormatter.format(estoqueStats.valorEstoque)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {estoqueStats.itensAbaixoMinimo.length > 0 && (
+          <div className="card-static rise-in overflow-hidden p-5" style={{ animationDelay: "960ms" }}>
+            <div className="mb-4 flex items-center gap-2">
+              <AlertTriangle size={16} className="text-rose-400" />
+              <h3 className="text-sm font-semibold text-slate-200">Itens com estoque baixo</h3>
+              <span className="ml-auto rounded-lg bg-rose-500/10 px-2 py-0.5 text-xs text-rose-300">{estoqueStats.itensAbaixoMinimo.length} item(s)</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="table-pro min-w-full">
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>SKU</th>
+                    <th>Saldo atual</th>
+                    <th>Mínimo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {estoqueStats.itensAbaixoMinimo.slice(0, 8).map((p) => (
+                    <tr key={p.id}>
+                      <td className="font-medium text-cyan-200">{p.nome}</td>
+                      <td className="font-mono text-xs text-slate-400">{p.sku}</td>
+                      <td><span className="font-semibold text-rose-300">{p.estoque_atual}</span></td>
+                      <td className="text-slate-400">{p.estoque_minimo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Footer info */}
