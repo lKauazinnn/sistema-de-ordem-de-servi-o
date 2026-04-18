@@ -241,22 +241,7 @@ export async function listOs(params: { page: number; pageSize: number; search: s
 }
 
 export async function createOs(input: OsInput) {
-  try {
-    const response = await fetch("/api/os/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(input)
-    });
-
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.error ?? "Falha ao criar OS via API");
-    }
-
-    return payload as OrdemServico;
-  } catch {
+  if (!useServerOsApi) {
     const { data, error } = await supabase.from("ordens_servico").insert(input).select("*").single();
 
     if (error) {
@@ -265,6 +250,21 @@ export async function createOs(input: OsInput) {
 
     return data as OrdemServico;
   }
+
+  const response = await fetch("/api/os/create", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Falha ao criar OS via API");
+  }
+
+  return payload as OrdemServico;
 }
 
 export async function updateOs(osId: string, input: Partial<OsInput>) {
