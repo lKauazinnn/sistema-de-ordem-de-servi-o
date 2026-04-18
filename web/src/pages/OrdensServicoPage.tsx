@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Download, Edit3, FileText, Plus, Search, Trash2, X, Zap } from "lucide-react";
-import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe, listOs, updateOs } from "../modules/os/service";
+import { CheckCircle2, ChevronLeft, ChevronRight, Download, Edit3, FileText, Plus, Search, Trash2, X, Zap } from "lucide-react";
+import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe, listOs, updateOs, updateStatus } from "../modules/os/service";
 import { gerarPdfOS } from "../lib/pdf";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
@@ -110,6 +110,12 @@ export function OrdensServicoPage() {
     mutationFn: deleteOs,
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["os"] }); setFeedback("OS excluída."); setConfirmDeleteId(null); },
     onError: (err) => { setFeedback(err instanceof Error ? err.message : "Falha ao excluir OS."); setConfirmDeleteId(null); }
+  });
+
+  const concluirMutation = useMutation({
+    mutationFn: (osId: string) => updateStatus(osId, "concluida"),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["os"] }); setFeedback("OS marcada como concluída."); },
+    onError: (err) => setFeedback(err instanceof Error ? err.message : "Falha ao concluir OS.")
   });
 
   function abrirModalOs() {
@@ -275,6 +281,16 @@ export function OrdensServicoPage() {
                     <td className="text-slate-400">{new Date(os.created_at).toLocaleDateString("pt-BR")}</td>
                     <td>
                       <div className="flex items-center justify-end gap-1.5">
+                        {!["concluida", "entregue", "cancelada"].includes(os.status) && (
+                          <button
+                            className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20"
+                            onClick={() => concluirMutation.mutate(os.id)}
+                            disabled={concluirMutation.isPending}
+                            title="Concluir OS"
+                          >
+                            <CheckCircle2 size={13} />
+                          </button>
+                        )}
                         <button className="btn-ghost !px-2 !py-1.5" onClick={() => abrirModalEditarOs(os)} title="Editar"><Edit3 size={13} /></button>
                         <button className="btn-ghost !px-2 !py-1.5" onClick={() => gerarPdfOS(os)} title="PDF"><Download size={13} /></button>
                         <button className="btn-ghost !px-2 !py-1.5 !text-indigo-300 !border-indigo-500/20" onClick={() => abrirModalNota(os.id, os.cliente_id, os.numero_sequencial, `${os.tipo_equipamento} ${os.marca} ${os.modelo}`)} disabled={notaMutation.isPending} title="Nota"><FileText size={13} /></button>

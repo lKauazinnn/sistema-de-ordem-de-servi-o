@@ -1,5 +1,20 @@
 export type UserRole = "admin" | "gerente" | "atendente" | "tecnico";
 
+export type UserFeatureKey = "streaming_panel";
+
+export type UserFeatures = {
+  streaming_panel?: boolean;
+};
+
+export interface UserProfile {
+  id: string;
+  nome: string;
+  email: string | null;
+  role: UserRole;
+  user_features: UserFeatures;
+  streaming_url: string | null;
+}
+
 export type OsStatus =
   | "aberta"
   | "diagnostico"

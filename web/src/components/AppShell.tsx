@@ -1,24 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, MoonStar, Package, Sun, Users, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, MoonStar, Package, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
 import { useSession } from "../hooks/useSession";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
 import type { AlertaEstoque } from "../hooks/useEstoqueAlerta";
 import { Logo } from "./Logo";
 
-const links = [
+const baseLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/os", label: "Ordens de Serviço", icon: ClipboardList },
   { to: "/estoque", label: "Estoque", icon: Package },
-  { to: "/clientes", label: "Clientes", icon: Users }
+  { to: "/clientes", label: "Clientes", icon: Users },
+  { to: "/streaming", label: "Streaming", icon: Tv },
+  { to: "/contas-pagar", label: "Contas a Pagar", icon: Wallet }
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { role, user } = useSession();
   const [isRelogging, setIsRelogging] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
@@ -54,6 +56,11 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const themeIcon = theme === "light" ? <Sun size={15} /> : theme === "dark" ? <Moon size={15} /> : <MoonStar size={15} />;
   const themeLabel = theme === "light" ? "Tema claro" : theme === "dark" ? "Tema escuro" : "Tema preto";
+
+  const links = [...baseLinks];
+  if (role === "admin") {
+    links.push({ to: "/usuarios", label: "Usuarios", icon: UserCog });
+  }
 
   async function handleRelogar() {
     setIsRelogging(true);

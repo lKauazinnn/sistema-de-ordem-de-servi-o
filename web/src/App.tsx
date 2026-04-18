@@ -6,6 +6,9 @@ import { LoginPage } from "./pages/LoginPage";
 import { OrdensServicoPage } from "./pages/OrdensServicoPage";
 import { EstoquePage } from "./pages/EstoquePage";
 import { ClientesPage } from "./pages/ClientesPage";
+import { StreamingGestaoPage } from "./pages/StreamingGestaoPage";
+import { ContasPagarPage } from "./pages/ContasPagarPage";
+import { UsuariosPage } from "./pages/UsuariosPage";
 
 export default function App() {
   return (
@@ -51,6 +54,39 @@ export default function App() {
           element={
             <AppShell>
               <ClientesPage />
+            </AppShell>
+          }
+        />
+      </Route>
+
+      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente", "tecnico"]} />}>
+        <Route
+          path="/streaming"
+          element={
+            <AppShell>
+              <StreamingGestaoPage />
+            </AppShell>
+          }
+        />
+      </Route>
+
+      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente", "tecnico"]} />}>
+        <Route
+          path="/contas-pagar"
+          element={
+            <AppShell>
+              <ContasPagarPage />
+            </AppShell>
+          }
+        />
+      </Route>
+
+      <Route element={<RouteGuard allowedRoles={["admin"]} />}>
+        <Route
+          path="/usuarios"
+          element={
+            <AppShell>
+              <UsuariosPage />
             </AppShell>
           }
         />

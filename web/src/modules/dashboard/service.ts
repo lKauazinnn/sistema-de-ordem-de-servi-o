@@ -202,3 +202,308 @@ export async function getReceitaMensal(meses = 6) {
     };
   });
 }
+
+// ─── Estoque ──────────────────────────────────────────────────────────────────
+
+type ProdutoRow = {
+  id: string;
+  nome: string;
+  sku: string;
+  categoria: string;
+  estoque_atual: number;
+  estoque_minimo: number;
+  preco_custo: number;
+  preco_venda: number;
+};
+
+export async function getEstoqueDashboard() {
+  const { data, error } = await supabase
+    .from("produtos")
+    .select("estoque_atual,estoque_minimo,preco_custo,preco_venda");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as Pick<ProdutoRow, "estoque_atual" | "estoque_minimo" | "preco_custo" | "preco_venda">[];
+
+  let totalProdutos = rows.length;
+  let abaixoMinimo = 0;
+  let zerados = 0;
+  let valorCusto = 0;
+  let valorVenda = 0;
+
+  for (const row of rows) {
+    const atual = Number(row.estoque_atual) || 0;
+    const minimo = Number(row.estoque_minimo) || 0;
+    if (atual === 0) zerados += 1;
+    else if (atual < minimo) abaixoMinimo += 1;
+    valorCusto += atual * (Number(row.preco_custo) || 0);
+    valorVenda += atual * (Number(row.preco_venda) || 0);
+  }
+
+  return {
+    totalProdutos,
+    abaixoMinimo,
+    zerados,
+    alertas: abaixoMinimo + zerados,
+    valorCusto: Number(valorCusto.toFixed(2)),
+    valorVenda: Number(valorVenda.toFixed(2))
+  };
+}
+
+export async function getProdutosAbaixoMinimo(limit = 8) {
+  const { data, error } = await supabase
+    .from("produtos")
+    .select("id,nome,sku,categoria,estoque_atual,estoque_minimo")
+    .order("estoque_atual", { ascending: true })
+    .limit(50);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as Pick<ProdutoRow, "id" | "nome" | "sku" | "categoria" | "estoque_atual" | "estoque_minimo">[];
+
+  return rows
+    .filter((r) => Number(r.estoque_atual) < Number(r.estoque_minimo))
+    .slice(0, limit);
+}
+
+export async function getEstoquePorCategoria() {
+  const { data, error } = await supabase
+    .from("produtos")
+    .select("categoria,estoque_atual,estoque_minimo");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as Pick<ProdutoRow, "categoria" | "estoque_atual" | "estoque_minimo">[];
+  const map = new Map<string, { atual: number; minimo: number }>();
+
+  for (const row of rows) {
+    const key = (row.categoria ?? "Sem categoria").trim() || "Sem categoria";
+    const entry = map.get(key) ?? { atual: 0, minimo: 0 };
+    entry.atual += Number(row.estoque_atual) || 0;
+    entry.minimo += Number(row.estoque_minimo) || 0;
+    map.set(key, entry);
+  }
+
+  return [...map.entries()]
+    .map(([categoria, v]) => ({ categoria, atual: v.atual, minimo: v.minimo }))
+    .sort((a, b) => b.atual - a.atual);
+}
+
+type PaymentStatus = "pago" | "pendente";
+
+type StreamingRow = {
+  id: string;
+  cliente_nome: string;
+  servidor: string;
+  dispositivo: string;
+  aplicativo: string;
+  data_ativacao: string;
+  data_vencimento: string;
+  status_pagamento: PaymentStatus;
+  created_at: string;
+};
+
+type ContaPagarRow = {
+  id: string;
+  descricao: string;
+  fornecedor: string | null;
+  valor: number;
+  data_vencimento: string;
+  status_pagamento: PaymentStatus;
+  created_at: string;
+};
+
+function hoursUntil(dateString: string) {
+  const target = new Date(dateString).getTime();
+  const now = Date.now();
+  return (target - now) / (1000 * 60 * 60);
+}
+
+function dueAlert(status: PaymentStatus, dueDate: string) {
+  if (status === "pago") {
+    return { level: "ok", message: "Pago" as const };
+  }
+
+  const diffHours = hoursUntil(dueDate);
+  if (diffHours < 0) {
+    return { level: "vencido", message: "Vencido" as const };
+  }
+
+  if (diffHours <= 24) {
+    return { level: "hoje", message: `Vence em ${Math.max(1, Math.floor(diffHours))}h` };
+  }
+
+  if (diffHours <= 48) {
+    return { level: "um_dia", message: "Vence em 1 dia" as const };
+  }
+
+  return { level: "normal", message: "Em dia" as const };
+}
+
+export async function getStreamingResumo() {
+  const { data, error } = await supabase
+    .from("streaming_assinaturas")
+    .select("id,data_vencimento,status_pagamento");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as Array<Pick<StreamingRow, "id" | "data_vencimento" | "status_pagamento">>;
+  let pendentes = 0;
+  let vencendo24h = 0;
+  let vencidos = 0;
+
+  for (const row of rows) {
+    const alert = dueAlert(row.status_pagamento, row.data_vencimento);
+    if (row.status_pagamento === "pendente") pendentes += 1;
+    if (alert.level === "hoje" || alert.level === "um_dia") vencendo24h += 1;
+    if (alert.level === "vencido") vencidos += 1;
+  }
+
+  return {
+    total: rows.length,
+    pendentes,
+    vencendo24h,
+    vencidos
+  };
+}
+
+export async function getStreamingVencimentos(limit = 10) {
+  const { data, error } = await supabase
+    .from("streaming_assinaturas")
+    .select("id,cliente_nome,servidor,dispositivo,aplicativo,data_ativacao,data_vencimento,status_pagamento,created_at")
+    .order("data_vencimento", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as StreamingRow[];
+
+  return rows
+    .map((row) => ({
+      ...row,
+      alerta: dueAlert(row.status_pagamento, row.data_vencimento)
+    }))
+    .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
+    .slice(0, limit);
+}
+
+export async function createStreamingRegistro(input: {
+  cliente_nome: string;
+  servidor: string;
+  dispositivo: string;
+  aplicativo: string;
+  data_ativacao: string;
+  data_vencimento: string;
+}) {
+  const { error } = await supabase.from("streaming_assinaturas").insert({
+    ...input,
+    status_pagamento: "pendente"
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function updateStreamingStatus(id: string, status: PaymentStatus) {
+  const { error } = await supabase
+    .from("streaming_assinaturas")
+    .update({ status_pagamento: status })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function getContasPagarResumo() {
+  const { data, error } = await supabase
+    .from("contas_pagar")
+    .select("id,valor,data_vencimento,status_pagamento");
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as Array<Pick<ContaPagarRow, "id" | "valor" | "data_vencimento" | "status_pagamento">>;
+  let pendentes = 0;
+  let vencendo24h = 0;
+  let vencidos = 0;
+  let valorPendente = 0;
+
+  for (const row of rows) {
+    const alert = dueAlert(row.status_pagamento, row.data_vencimento);
+    if (row.status_pagamento === "pendente") {
+      pendentes += 1;
+      valorPendente += Number(row.valor) || 0;
+    }
+    if (alert.level === "hoje" || alert.level === "um_dia") vencendo24h += 1;
+    if (alert.level === "vencido") vencidos += 1;
+  }
+
+  return {
+    total: rows.length,
+    pendentes,
+    vencendo24h,
+    vencidos,
+    valorPendente: Number(valorPendente.toFixed(2))
+  };
+}
+
+export async function getContasPagarVencimentos(limit = 10) {
+  const { data, error } = await supabase
+    .from("contas_pagar")
+    .select("id,descricao,fornecedor,valor,data_vencimento,status_pagamento,created_at")
+    .order("data_vencimento", { ascending: true })
+    .limit(200);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const rows = (data ?? []) as ContaPagarRow[];
+  return rows
+    .map((row) => ({
+      ...row,
+      alerta: dueAlert(row.status_pagamento, row.data_vencimento)
+    }))
+    .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
+    .slice(0, limit);
+}
+
+export async function createContaPagar(input: {
+  descricao: string;
+  fornecedor: string | null;
+  valor: number;
+  data_vencimento: string;
+}) {
+  const { error } = await supabase.from("contas_pagar").insert({
+    ...input,
+    status_pagamento: "pendente"
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+export async function updateContaPagarStatus(id: string, status: PaymentStatus) {
+  const { error } = await supabase
+    .from("contas_pagar")
+    .update({ status_pagamento: status })
+    .eq("id", id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}
