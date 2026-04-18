@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 import { parseBody, sanitizeString } from "../_lib/security";
+import { validateSerialOrImei } from "../_lib/imei";
 
 const schema = z.object({
   cliente_id: z.string().uuid(),
@@ -23,12 +24,23 @@ export default async function handler(req: any, res: any) {
   try {
     const input = parseBody(schema, req.body);
 
+    const tipoEquipamento = sanitizeString(input.tipo_equipamento);
+    const serialImei = sanitizeString(input.serial_imei);
+    const imeiValidation = validateSerialOrImei({
+      value: serialImei,
+      tipoEquipamento
+    });
+
+    if (!imeiValidation.valid) {
+      return res.status(400).json({ error: imeiValidation.message });
+    }
+
     const payload = {
       ...input,
-      tipo_equipamento: sanitizeString(input.tipo_equipamento),
+      tipo_equipamento: tipoEquipamento,
       marca: sanitizeString(input.marca),
       modelo: sanitizeString(input.modelo),
-      serial_imei: sanitizeString(input.serial_imei),
+      serial_imei: imeiValidation.normalized,
       problema_relatado: sanitizeString(input.problema_relatado),
       observacoes_internas: input.observacoes_internas ? sanitizeString(input.observacoes_internas) : null
     };

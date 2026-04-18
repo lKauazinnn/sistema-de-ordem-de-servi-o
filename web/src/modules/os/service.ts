@@ -2,6 +2,21 @@ import { supabase } from "../../lib/supabase";
 import type { OrdemServico } from "../../types";
 import type { OsInput } from "./schema";
 
+type ImeiValidationResult = {
+  valid: boolean;
+  type: "imei" | "serial";
+  normalized: string;
+  message: string;
+  autoFill?: {
+    tipo_equipamento: string;
+    marca: string;
+    modelo: string;
+    source: "historico" | "tac";
+  };
+};
+
+const useServerOsApi = import.meta.env.VITE_USE_SERVER_OS_API === "true";
+
 function mapOsError(error: { message: string; code?: string | null }) {
   if (error.code === "42501") {
     return `Permissao negada (RLS/GRANT). Rode a migration 20260414_fix_os_permissions.sql no Supabase e faca login novamente. Detalhe: ${error.message}`;
@@ -12,6 +27,195 @@ function mapOsError(error: { message: string; code?: string | null }) {
   }
 
   return error.message;
+}
+
+function isValidImeiDigits(imei: string) {
+  if (!/^\d{15}$/.test(imei)) return false;
+
+  let sum = 0;
+  for (let i = 0; i < imei.length; i += 1) {
+    let digit = Number(imei[i]);
+    if (Number.isNaN(digit)) return false;
+
+    if (i % 2 === 1) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+
+    sum += digit;
+  }
+
+  return sum % 10 === 0;
+}
+
+function validateSerialOrImeiLocally(value: string, tipoEquipamento?: string): ImeiValidationResult {
+  const normalized = value.trim();
+  const digits = normalized.replace(/\D/g, "");
+  const isDigitsOnly = /^\d+$/.test(normalized);
+  const isCelular = (tipoEquipamento ?? "").toLowerCase() === "celular";
+
+  if (!normalized) {
+    return {
+      valid: false,
+      type: "serial",
+      normalized,
+      message: "Informe o Serial/IMEI."
+    };
+  }
+
+  if (isDigitsOnly && normalized.length === 15) {
+    const valid = isValidImeiDigits(normalized);
+    return {
+      valid,
+      type: "imei",
+      normalized,
+      message: valid ? "IMEI válido." : "IMEI inválido. Verifique os 15 dígitos informados."
+    };
+  }
+
+  if (isCelular) {
+    if (digits.length === 15 && isValidImeiDigits(digits)) {
+      return {
+        valid: true,
+        type: "imei",
+        normalized: digits,
+        message: "IMEI válido."
+      };
+    }
+
+    return {
+      valid: false,
+      type: "imei",
+      normalized,
+      message: "Para celular, informe um IMEI válido de 15 dígitos."
+    };
+  }
+
+  return {
+    valid: normalized.length >= 3,
+    type: "serial",
+    normalized,
+    message: normalized.length >= 3
+      ? "Serial válido."
+      : "Serial deve ter pelo menos 3 caracteres."
+  };
+}
+
+async function attachAutoFillFromSupabase(base: ImeiValidationResult, rawValue: string) {
+  if (!base.valid) return base;
+
+  const cols = "tipo_equipamento,marca,modelo,serial_imei,created_at";
+
+  const { data: byNormalized } = await supabase
+    .from("ordens_servico")
+    .select(cols)
+    .eq("serial_imei", base.normalized)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (byNormalized) {
+    return {
+      ...base,
+      autoFill: {
+        tipo_equipamento: byNormalized.tipo_equipamento,
+        marca: byNormalized.marca,
+        modelo: byNormalized.modelo,
+        source: "historico"
+      }
+    };
+  }
+
+  const rawSanitized = rawValue.trim();
+  if (rawSanitized && rawSanitized !== base.normalized) {
+    const { data: byRaw } = await supabase
+      .from("ordens_servico")
+      .select(cols)
+      .eq("serial_imei", rawSanitized)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (byRaw) {
+      return {
+        ...base,
+        autoFill: {
+          tipo_equipamento: byRaw.tipo_equipamento,
+          marca: byRaw.marca,
+          modelo: byRaw.modelo,
+          source: "historico"
+        }
+      };
+    }
+  }
+
+  if (base.type === "imei") {
+    const tac = base.normalized.slice(0, 8);
+    if (tac.length === 8) {
+      const { data: byTac } = await supabase
+        .from("ordens_servico")
+        .select(cols)
+        .like("serial_imei", `${tac}%`)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (byTac) {
+        return {
+          ...base,
+          autoFill: {
+            tipo_equipamento: byTac.tipo_equipamento,
+            marca: byTac.marca,
+            modelo: byTac.modelo,
+            source: "tac"
+          }
+        };
+      }
+    }
+  }
+
+  return base;
+}
+
+export async function validateImeiSerial(input: { value: string; tipoEquipamento?: string }) {
+  const localValidation = validateSerialOrImeiLocally(input.value, input.tipoEquipamento);
+  if (!localValidation.valid) {
+    return localValidation;
+  }
+
+  if (!useServerOsApi) {
+    try {
+      return await attachAutoFillFromSupabase(localValidation, input.value);
+    } catch {
+      return localValidation;
+    }
+  }
+
+  try {
+    const response = await fetch("/api/os/validate-imei", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        value: input.value,
+        tipo_equipamento: input.tipoEquipamento
+      })
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      return await attachAutoFillFromSupabase(localValidation, input.value);
+    }
+
+    return payload as ImeiValidationResult;
+  } catch {
+    try {
+      return await attachAutoFillFromSupabase(localValidation, input.value);
+    } catch {
+      return localValidation;
+    }
+  }
 }
 
 export async function listOs(params: { page: number; pageSize: number; search: string }) {
@@ -37,13 +241,30 @@ export async function listOs(params: { page: number; pageSize: number; search: s
 }
 
 export async function createOs(input: OsInput) {
-  const { data, error } = await supabase.from("ordens_servico").insert(input).select("*").single();
+  try {
+    const response = await fetch("/api/os/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(input)
+    });
 
-  if (error) {
-    throw new Error(mapOsError(error));
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Falha ao criar OS via API");
+    }
+
+    return payload as OrdemServico;
+  } catch {
+    const { data, error } = await supabase.from("ordens_servico").insert(input).select("*").single();
+
+    if (error) {
+      throw new Error(mapOsError(error));
+    }
+
+    return data as OrdemServico;
   }
-
-  return data as OrdemServico;
 }
 
 export async function updateOs(osId: string, input: Partial<OsInput>) {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronLeft, ChevronRight, Download, Edit3, FileText, Plus, Search, Trash2, X, Zap } from "lucide-react";
-import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe, listOs, updateOs, updateStatus } from "../modules/os/service";
+import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe, listOs, updateOs, updateStatus, validateImeiSerial } from "../modules/os/service";
 import { gerarPdfOS } from "../lib/pdf";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
@@ -46,6 +46,11 @@ type OsFormState = {
   status: OrdemServico["status"];
 };
 
+type ValidationState = {
+  status: "idle" | "loading" | "valid" | "invalid";
+  message: string | null;
+};
+
 const initialOsForm: OsFormState = {
   clienteId: "",
   tipoEquipamento: "celular",
@@ -66,6 +71,7 @@ export function OrdensServicoPage() {
   const [showOsModal, setShowOsModal] = useState(false);
   const [editingOsId, setEditingOsId] = useState<string | null>(null);
   const [osForm, setOsForm] = useState<OsFormState>(initialOsForm);
+  const [imeiValidation, setImeiValidation] = useState<ValidationState>({ status: "idle", message: null });
   const [notaModal, setNotaModal] = useState<NotaModalState | null>(null);
   const [notaForm, setNotaForm] = useState<NotaFormState>(initialNotaForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -121,6 +127,7 @@ export function OrdensServicoPage() {
   function abrirModalOs() {
     setFeedback(null);
     setEditingOsId(null);
+    setImeiValidation({ status: "idle", message: null });
     setOsForm({ ...initialOsForm, clienteId: clientes?.[0]?.id ?? "", prazoEstimado: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 16) });
     setShowOsModal(true);
   }
@@ -128,6 +135,7 @@ export function OrdensServicoPage() {
   function abrirModalEditarOs(os: OrdemServico) {
     setFeedback(null);
     setEditingOsId(os.id);
+    setImeiValidation({ status: "idle", message: null });
     setOsForm({
       clienteId: os.cliente_id,
       tipoEquipamento: os.tipo_equipamento,
@@ -143,6 +151,50 @@ export function OrdensServicoPage() {
     setShowOsModal(true);
   }
 
+  async function validarImeiEPreencher() {
+    const value = osForm.serialImei.trim();
+
+    if (!value) {
+      setImeiValidation({ status: "idle", message: null });
+      return null;
+    }
+
+    setImeiValidation({ status: "loading", message: "Validando IMEI/serial..." });
+    const result = await validateImeiSerial({
+      value,
+      tipoEquipamento: osForm.tipoEquipamento
+    });
+
+    if (!result.valid) {
+      setImeiValidation({ status: "invalid", message: result.message });
+      return result;
+    }
+
+    setOsForm((current) => {
+      let next = { ...current, serialImei: result.normalized };
+
+      if (result.autoFill) {
+        next = {
+          ...next,
+          tipoEquipamento: result.autoFill.tipo_equipamento || next.tipoEquipamento,
+          marca: result.autoFill.marca || next.marca,
+          modelo: result.autoFill.modelo || next.modelo
+        };
+      }
+
+      return next;
+    });
+
+    setImeiValidation({
+      status: "valid",
+      message: result.autoFill
+        ? `${result.message} Dados do aparelho preenchidos automaticamente.`
+        : result.message
+    });
+
+    return result;
+  }
+
   function fecharModalOs() {
     if (createMutation.isPending || updateMutation.isPending) return;
     setShowOsModal(false);
@@ -154,6 +206,13 @@ export function OrdensServicoPage() {
     if (!user?.id) { setFeedback("Usuário não autenticado."); return; }
     if (!osForm.clienteId) { setFeedback("Selecione um cliente."); return; }
 
+    const validation = await validarImeiEPreencher();
+
+    if (!validation?.valid) {
+      setFeedback(validation?.message ?? "Informe um serial/IMEI válido.");
+      return;
+    }
+
     try {
       if (editingOsId) {
         await updateMutation.mutateAsync({
@@ -162,7 +221,7 @@ export function OrdensServicoPage() {
           tipo_equipamento: osForm.tipoEquipamento,
           marca: osForm.marca,
           modelo: osForm.modelo,
-          serial_imei: osForm.serialImei,
+          serial_imei: validation.normalized,
           problema_relatado: osForm.problemaRelatado,
           prioridade: osForm.prioridade,
           prazo_estimado: osForm.prazoEstimado ? new Date(osForm.prazoEstimado).toISOString() : undefined,
@@ -177,7 +236,7 @@ export function OrdensServicoPage() {
           tipo_equipamento: osForm.tipoEquipamento,
           marca: osForm.marca,
           modelo: osForm.modelo,
-          serial_imei: osForm.serialImei,
+          serial_imei: validation.normalized,
           problema_relatado: osForm.problemaRelatado,
           prioridade: osForm.prioridade,
           prazo_estimado: new Date(osForm.prazoEstimado).toISOString(),
@@ -350,7 +409,14 @@ export function OrdensServicoPage() {
 
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">Tipo de equipamento</span>
-                <select value={osForm.tipoEquipamento} onChange={(e) => setOsForm((c) => ({ ...c, tipoEquipamento: e.target.value }))} className="input-dark">
+                <select
+                  value={osForm.tipoEquipamento}
+                  onChange={(e) => {
+                    setImeiValidation({ status: "idle", message: null });
+                    setOsForm((c) => ({ ...c, tipoEquipamento: e.target.value }));
+                  }}
+                  className="input-dark"
+                >
                   {["celular", "notebook", "tablet", "tv", "videogame", "outro"].map((t) => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                 </select>
               </label>
@@ -373,17 +439,46 @@ export function OrdensServicoPage() {
 
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">Marca</span>
-                <input value={osForm.marca} onChange={(e) => setOsForm((c) => ({ ...c, marca: e.target.value }))} className="input-dark" />
+                <input
+                  value={osForm.marca}
+                  onChange={(e) => {
+                    setImeiValidation({ status: "idle", message: null });
+                    setOsForm((c) => ({ ...c, marca: e.target.value }));
+                  }}
+                  className="input-dark"
+                />
               </label>
 
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">Modelo</span>
-                <input value={osForm.modelo} onChange={(e) => setOsForm((c) => ({ ...c, modelo: e.target.value }))} className="input-dark" />
+                <input
+                  value={osForm.modelo}
+                  onChange={(e) => {
+                    setImeiValidation({ status: "idle", message: null });
+                    setOsForm((c) => ({ ...c, modelo: e.target.value }));
+                  }}
+                  className="input-dark"
+                />
               </label>
 
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">Serial / IMEI</span>
-                <input value={osForm.serialImei} onChange={(e) => setOsForm((c) => ({ ...c, serialImei: e.target.value }))} className="input-dark" />
+                <input
+                  value={osForm.serialImei}
+                  onChange={(e) => {
+                    setImeiValidation({ status: "idle", message: null });
+                    setOsForm((c) => ({ ...c, serialImei: e.target.value }));
+                  }}
+                  onBlur={() => {
+                    void validarImeiEPreencher();
+                  }}
+                  className="input-dark"
+                />
+                {imeiValidation.status !== "idle" && (
+                  <p className={`mt-1.5 text-xs ${imeiValidation.status === "loading" ? "text-slate-400" : imeiValidation.status === "valid" ? "text-emerald-400" : "text-rose-400"}`}>
+                    {imeiValidation.message}
+                  </p>
+                )}
               </label>
 
               <label className="block text-sm">
