@@ -62,6 +62,33 @@ if not errorlevel 1 (
 )
 
 echo.
+echo Sincronizando com o GitHub...
+git ls-remote --exit-code --heads origin main >nul 2>&1
+if not errorlevel 1 (
+  git fetch origin main
+  if errorlevel 1 (
+    echo [ERRO] Nao foi possivel atualizar referencias do remoto.
+    pause
+    exit /b 1
+  )
+
+  git rebase origin/main
+  if errorlevel 1 (
+    echo.
+    echo [ERRO] Houve conflito ao sincronizar com o remoto.
+    echo Resolva os conflitos e depois rode:
+    echo   git add .
+    echo   git rebase --continue
+    echo ou, se quiser cancelar:
+    echo   git rebase --abort
+    pause
+    exit /b 1
+  )
+) else (
+  echo Branch main ainda nao existe no remoto. Continuando primeiro envio...
+)
+
+echo.
 echo Enviando para GitHub...
 git push -u origin main
 
