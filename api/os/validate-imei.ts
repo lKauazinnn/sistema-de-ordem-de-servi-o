@@ -14,13 +14,38 @@ function imeiTac(value: string) {
   return digits.slice(0, 8);
 }
 
+function normalizeRequestBody(body: unknown) {
+  if (!body) return {};
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return {};
+    }
+  }
+
+  return body;
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Metodo nao permitido" });
   }
 
   try {
-    const input = parseBody(schema, req.body);
+    const body = normalizeRequestBody(req.body);
+    const parsed = schema.safeParse(body);
+
+    if (!parsed.success) {
+      return res.status(200).json({
+        valid: false,
+        type: "serial",
+        normalized: "",
+        message: "Payload de validacao invalido."
+      });
+    }
+
+    const input = parseBody(schema, parsed.data);
 
     const result = validateSerialOrImei({
       value: sanitizeString(input.value),
@@ -95,6 +120,11 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Erro inesperado";
-    return res.status(400).json({ error: message });
+    return res.status(200).json({
+      valid: false,
+      type: "serial",
+      normalized: "",
+      message: `Falha ao validar IMEI/serial: ${message}`
+    });
   }
 }
