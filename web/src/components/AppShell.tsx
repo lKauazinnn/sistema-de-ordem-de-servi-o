@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
+import { AlertTriangle, BellRing, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
 import { useSession } from "../hooks/useSession";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
@@ -65,7 +65,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const links = [...baseLinks];
   if (role === "admin") {
-    links.push({ to: "/usuarios", label: "Usuarios", icon: UserCog });
+    links.push({ to: "/usuarios", label: "Usuários", icon: UserCog });
   }
 
   async function handleRelogar() {
@@ -98,7 +98,7 @@ export function AppShell({ children }: PropsWithChildren) {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden items-center gap-1.5 md:flex">
+          <nav className="hidden items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] px-2 py-1.5 md:flex">
             {links.map((item) => {
               const Icon = item.icon;
               const active = location.pathname === item.to;
@@ -108,7 +108,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   to={item.to}
                   className={`nav-pill flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-[12px] font-medium ${
                     active
-                      ? "bg-cyan-500/12 text-cyan-100 ring-1 ring-cyan-400/25"
+                      ? "bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/30 shadow-[0_0_0_1px_rgba(34,211,238,0.15)]"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
@@ -126,6 +126,11 @@ export function AppShell({ children }: PropsWithChildren) {
                 {(user?.email?.[0] ?? "U").toUpperCase()}
               </div>
               <span className="max-w-[140px] truncate text-xs text-slate-300">{user?.email ?? ""}</span>
+            </div>
+
+            <div className="hidden items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/8 px-2.5 py-1.5 text-[11px] font-medium text-cyan-100 xl:flex">
+              <BellRing size={13} />
+              Sistema online
             </div>
 
             <button
@@ -183,7 +188,8 @@ export function AppShell({ children }: PropsWithChildren) {
 
       {/* Breadcrumb */}
       <div className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Sparkles size={12} className="text-cyan-400/60" />
           <span>OrdemFlow</span>
           <ChevronRight size={12} />
           <span className="text-slate-300">{currentPageLabel}</span>

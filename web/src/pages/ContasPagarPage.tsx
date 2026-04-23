@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calculator, Wallet } from "lucide-react";
+import { AlertTriangle, Calculator, CheckCircle2, Clock3, PlusCircle, Search, Wallet } from "lucide-react";
 import {
   createContaPagar,
   getContasPagarResumo,
@@ -132,14 +132,17 @@ export function ContasPagarPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: "Total", value: loadingResumo ? "..." : String(resumo?.total ?? 0) },
-          { label: "Pendentes", value: loadingResumo ? "..." : String(resumo?.pendentes ?? 0) },
-          { label: "Aviso 24h", value: loadingResumo ? "..." : String(resumo?.vencendo24h ?? 0) },
-          { label: "Valor pendente", value: loadingResumo ? "..." : money.format(resumo?.valorPendente ?? 0) }
+          { label: "Total", value: loadingResumo ? "..." : String(resumo?.total ?? 0), icon: Wallet, color: "text-indigo-300" },
+          { label: "Pendentes", value: loadingResumo ? "..." : String(resumo?.pendentes ?? 0), icon: Clock3, color: "text-amber-300" },
+          { label: "Aviso 24h", value: loadingResumo ? "..." : String(resumo?.vencendo24h ?? 0), icon: AlertTriangle, color: "text-rose-300" },
+          { label: "Valor pendente", value: loadingResumo ? "..." : money.format(resumo?.valorPendente ?? 0), icon: Calculator, color: "text-cyan-300" }
         ].map((card) => (
           <div key={card.label} className="card p-4">
-            <p className="text-xs text-slate-400">{card.label}</p>
-            <p className="mt-1 text-2xl font-bold text-indigo-200">{card.value}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-slate-400">{card.label}</p>
+              <card.icon size={14} className={card.color} />
+            </div>
+            <p className={`mt-1 text-2xl font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
       </div>
@@ -240,14 +243,20 @@ export function ContasPagarPage() {
             <input className="input-dark" type="datetime-local" value={form.data_vencimento} onChange={(e) => setForm((p) => ({ ...p, data_vencimento: e.target.value }))} />
           </div>
           <div className="mt-3 flex justify-end">
-            <button className="btn-primary" onClick={handleCreate} disabled={createMutation.isPending}>Cadastrar conta</button>
+            <button className="btn-primary" onClick={handleCreate} disabled={createMutation.isPending}>
+              <PlusCircle size={15} />
+              Cadastrar conta
+            </button>
           </div>
         </div>
       ) : null}
 
       <div className="card-static p-4">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-center">
-          <input className="input-dark" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex items-center gap-2 rounded-xl border border-slate-800/70 bg-slate-950/70 px-3">
+            <Search size={15} className="text-slate-500" />
+            <input className="input-dark !border-0 !bg-transparent !px-0 !shadow-none" placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
           <div className="flex flex-wrap gap-2">
             {["todos", "pendente", "alerta", "vencido", "pago"].map((opt) => (
               <button key={opt} type="button" onClick={() => setFilter(opt as any)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${filter === opt ? "bg-indigo-500/20 text-indigo-100 ring-1 ring-indigo-400/30" : "bg-slate-900/60 text-slate-300 ring-1 ring-slate-700/60 hover:text-white"}`}>{opt}</button>
@@ -281,6 +290,7 @@ export function ContasPagarPage() {
                     <td className="text-right">
                       {canManage ? (
                         <button className="btn-ghost !px-2 !py-1" onClick={() => statusMutation.mutate({ id: item.id, status: item.status_pagamento === "pago" ? "pendente" : "pago" })} disabled={statusMutation.isPending}>
+                          <CheckCircle2 size={13} />
                           {item.status_pagamento === "pago" ? "Marcar pendente" : "Marcar pago"}
                         </button>
                       ) : null}
