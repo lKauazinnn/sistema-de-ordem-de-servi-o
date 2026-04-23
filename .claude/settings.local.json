@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git -C \"c:/Users/lkaua/Desktop/projeto ordem de serviço\" remote -v)",
+      "Bash(git -C \"c:/Users/lkaua/Desktop/projeto ordem de serviço\" log --oneline -5)",
+      "Bash(echo \"exit: $?\")"
+    ]
+  }
+}

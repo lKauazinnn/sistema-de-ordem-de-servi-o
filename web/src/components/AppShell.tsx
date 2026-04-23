@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, MoonStar, Package, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
 import { useSession } from "../hooks/useSession";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
@@ -16,6 +16,11 @@ const baseLinks = [
   { to: "/streaming", label: "Streaming", icon: Tv },
   { to: "/contas-pagar", label: "Contas a Pagar", icon: Wallet }
 ];
+
+const navLabels: Record<string, string> = {
+  "Ordens de Serviço": "OS",
+  "Contas a Pagar": "Contas"
+};
 
 export function AppShell({ children }: PropsWithChildren) {
   const location = useLocation();
@@ -41,8 +46,9 @@ export function AppShell({ children }: PropsWithChildren) {
     timerRefs.current.delete(key);
     setAlertas((prev) => prev.filter((a) => a.key !== key));
   }
-  const [theme, setTheme] = useState<"dark" | "black" | "light">(() => {
-    return (localStorage.getItem("theme") as "dark" | "black" | "light") ?? "dark";
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    const saved = localStorage.getItem("theme");
+    return saved === "light" ? "light" : "dark";
   });
 
   useEffect(() => {
@@ -51,11 +57,11 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [theme]);
 
   function cycleTheme() {
-    setTheme((t) => t === "dark" ? "black" : t === "black" ? "light" : "dark");
+    setTheme((t) => t === "dark" ? "light" : "dark");
   }
 
-  const themeIcon = theme === "light" ? <Sun size={15} /> : theme === "dark" ? <Moon size={15} /> : <MoonStar size={15} />;
-  const themeLabel = theme === "light" ? "Tema claro" : theme === "dark" ? "Tema escuro" : "Tema preto";
+  const themeIcon = theme === "light" ? <Sun size={15} /> : <Moon size={15} />;
+  const themeLabel = theme === "light" ? "Tema claro" : "Tema escuro";
 
   const links = [...baseLinks];
   if (role === "admin") {
@@ -100,14 +106,14 @@ export function AppShell({ children }: PropsWithChildren) {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`nav-pill flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-medium ${
+                  className={`nav-pill flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-[12px] font-medium ${
                     active
                       ? "bg-cyan-500/12 text-cyan-100 ring-1 ring-cyan-400/25"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
-                  <Icon size={15} strokeWidth={active ? 2.2 : 1.8} />
-                  {item.label}
+                  <Icon size={14} strokeWidth={active ? 2.2 : 1.8} />
+                  {navLabels[item.label] ?? item.label}
                 </Link>
               );
             })}
