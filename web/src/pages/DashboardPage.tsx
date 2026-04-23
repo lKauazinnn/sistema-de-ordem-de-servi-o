@@ -61,11 +61,19 @@ import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 
 const CHART_COLORS = ["#22d3ee", "#6366f1", "#34d399", "#f59e0b", "#f43f5e", "#a78bfa", "#fb923c"];
 
+type GenericTooltipEntry = {
+  name?: unknown;
+  value?: unknown;
+  color?: string;
+  dataKey?: unknown;
+  payload?: Record<string, unknown>;
+};
+
 /* ── Custom Tooltip: gráficos de linha/barra/área ── */
 function ChartTooltip({ active, payload, label, money = false }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>;
-  label?: string;
+  payload?: GenericTooltipEntry[];
+  label?: string | number;
   money?: boolean;
 }) {
   const fmt = useMemo(() => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }), []);
@@ -76,10 +84,10 @@ function ChartTooltip({ active, payload, label, money = false }: {
       <div className="space-y-1.5">
         {payload.map((entry, i) => (
           <div key={i} className="flex items-center gap-2.5">
-            <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: entry.color }} />
-            <span className="text-xs text-slate-300">{entry.name}</span>
+            <div className="h-2 w-2 shrink-0 rounded-full" style={{ background: entry.color ?? CHART_COLORS[0] }} />
+            <span className="text-xs text-slate-300">{String(entry.name ?? "—")}</span>
             <span className="ml-auto pl-3 text-xs font-semibold text-white">
-              {money ? fmt.format(Number(entry.value ?? 0)) : entry.value}
+              {money ? fmt.format(Number(entry.value ?? 0)) : String(entry.value ?? "—")}
             </span>
           </div>
         ))}
@@ -91,21 +99,22 @@ function ChartTooltip({ active, payload, label, money = false }: {
 /* ── Custom Tooltip: pizza ── */
 function PieTooltip({ active, payload, money = false }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; payload: { fill?: string; percent?: number } }>;
+  payload?: GenericTooltipEntry[];
   money?: boolean;
 }) {
   const fmt = useMemo(() => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }), []);
   if (!active || !payload?.length) return null;
   const entry = payload[0];
-  const pct = entry.payload?.percent != null ? `${(entry.payload.percent * 100).toFixed(1)}%` : "";
+  const percent = Number(entry.payload?.percent);
+  const pct = Number.isFinite(percent) ? `${(percent * 100).toFixed(1)}%` : "";
   return (
     <div className="rounded-xl border border-white/10 bg-black/95 px-3.5 py-3 shadow-2xl backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-1.5">
-        <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: entry.payload?.fill ?? CHART_COLORS[0] }} />
-        <span className="text-xs font-semibold text-slate-200">{entry.name}</span>
+        <div className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: String(entry.payload?.fill ?? CHART_COLORS[0]) }} />
+        <span className="text-xs font-semibold text-slate-200">{String(entry.name ?? "—")}</span>
       </div>
       <p className="text-xl font-bold text-white">
-        {money ? fmt.format(Number(entry.value ?? 0)) : entry.value}
+        {money ? fmt.format(Number(entry.value ?? 0)) : String(entry.value ?? "—")}
       </p>
       {pct && <p className="mt-0.5 text-xs text-slate-400">{pct} do total</p>}
     </div>
