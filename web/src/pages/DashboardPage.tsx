@@ -142,7 +142,13 @@ export function DashboardPage() {
     { name: "Aguardando", value: resumo?.aguardando_aprovacao ?? 0 }
   ];
 
+  const formaPagamentoData = useMemo(
+    () => (faturamentoPorForma ?? []).map((item) => ({ name: item.forma, value: Number(item.total ?? 0) })),
+    [faturamentoPorForma]
+  );
+
   const totalOs = cards.reduce((acc, c) => acc + c.value, 0);
+  const totalRecebidoPorForma = formaPagamentoData.reduce((acc, item) => acc + item.value, 0);
 
   const hasAlgumErro = erroResumo || erroTecnicos || erroReceita || erroFaturamentoResumo || erroFormaPagamento || erroUltimasNotas || erroEstoqueResumo || erroEstoqueAlertas || erroStreamingResumo || erroContasResumo;
 
@@ -179,6 +185,16 @@ export function DashboardPage() {
       return { ...item, receita_acumulada: Number(acumulado.toFixed(2)) };
     });
   }, [receitaMensal]);
+
+  const contasSimulacao = useMemo(() => {
+    const base = Number(contasResumo?.valorPendente ?? 0);
+    const recebiveisMes = Number(faturamentoResumo?.mesAtual ?? 0);
+    const d7 = Number((base * 0.35).toFixed(2));
+    const d15 = Number((base * 0.30).toFixed(2));
+    const d30 = Number(Math.max(base - d7 - d15, 0).toFixed(2));
+    const folga = Number((recebiveisMes - base).toFixed(2));
+    return { d7, d15, d30, folga };
+  }, [contasResumo?.valorPendente, faturamentoResumo?.mesAtual]);
 
   const getLegendOpacity = (key: string) => (legendOpacityKey && legendOpacityKey !== key ? 0.15 : 1);
 
@@ -225,6 +241,44 @@ export function DashboardPage() {
       }
     ]
   }), [osStatusData]);
+
+  const pagamentoDonutOption = useMemo(() => ({
+    backgroundColor: "transparent",
+    animationDuration: 650,
+    animationEasing: "cubicOut",
+    tooltip: {
+      trigger: "item",
+      backgroundColor: echartsTheme.tooltipBg,
+      borderColor: echartsTheme.tooltipBorder,
+      textStyle: { color: echartsTheme.textColor },
+      formatter: (params: { name: string; value: number; percent: number }) => {
+        return `${params.name}: ${moneyFormatter.format(Number(params.value ?? 0))} (${params.percent}%)`;
+      }
+    },
+    legend: {
+      bottom: 0,
+      textStyle: { color: "#94a3b8", fontSize: 11 }
+    },
+    series: [
+      {
+        type: "pie",
+        radius: ["46%", "72%"],
+        center: ["50%", "42%"],
+        avoidLabelOverlap: true,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: "#0b1220",
+          borderWidth: 2
+        },
+        label: { show: false },
+        data: formaPagamentoData.map((item, index) => ({
+          name: item.name,
+          value: item.value,
+          itemStyle: { color: CHART_COLORS[index % CHART_COLORS.length] }
+        }))
+      }
+    ]
+  }), [echartsTheme.textColor, echartsTheme.tooltipBg, echartsTheme.tooltipBorder, formaPagamentoData, moneyFormatter]);
 
   const osTecnicoOption = useMemo(() => ({
     backgroundColor: "transparent",
@@ -368,7 +422,7 @@ export function DashboardPage() {
       <div className="flex flex-col gap-6">
 
       {/* ── Faturamento ──────────────────────────────────────────────────── */}
-      <section className="space-y-4">
+      <section className="order-3 space-y-4">
         <div className="rise-in flex flex-wrap items-center justify-between gap-3" style={{ animationDelay: "100ms" }}>
           <div>
             <h3 className="font-display text-lg font-bold text-white">Faturamento</h3>
@@ -462,7 +516,7 @@ export function DashboardPage() {
       </section>
 
       {/* Status Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="order-1 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((card, index) => {
           const meta = STATUS_ICONS[card.label] ?? { icon: ClipboardList, color: "text-slate-300" };
           const Icon = meta.icon;
@@ -479,8 +533,7 @@ export function DashboardPage() {
       </div>
 
       {/* Charts Row 1 */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Donut */}
+      <div className="order-2 grid gap-4 xl:grid-cols-4">
         <div className="card-static rise-in overflow-hidden p-5" style={{ animationDelay: "620ms" }}>
           <div className="mb-4 flex items-center gap-2">
             <Layers size={16} className="text-cyan-400" />
@@ -492,14 +545,54 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* Bar: Técnicos */}
         <div className="card-static rise-in overflow-hidden p-5" style={{ animationDelay: "680ms" }}>
+          <div className="mb-4 flex items-center gap-2">
+            <CreditCard size={16} className="text-indigo-400" />
+            <h3 className="text-sm font-semibold text-slate-200">Receita por Pagamento</h3>
+            <span className="ml-auto rounded-lg bg-slate-800/80 px-2 py-0.5 text-xs text-slate-300">{moneyFormatter.format(totalRecebidoPorForma)}</span>
+          </div>
+          <div className="h-64">
+            {loadingFormaPagamento ? <LoadingBlock /> : <ReactECharts option={pagamentoDonutOption} style={{ height: "100%", width: "100%" }} notMerge lazyUpdate />}
+          </div>
+        </div>
+
+        <div className="card-static rise-in overflow-hidden p-5" style={{ animationDelay: "710ms" }}>
           <div className="mb-4 flex items-center gap-2">
             <BarChart3 size={16} className="text-indigo-400" />
             <h3 className="text-sm font-semibold text-slate-200">OS por Técnico</h3>
           </div>
           <div className="h-64">
             {loadingTecnicos ? <LoadingBlock /> : <ReactECharts option={osTecnicoOption} style={{ height: "100%", width: "100%" }} notMerge lazyUpdate />}
+          </div>
+        </div>
+
+        <div className="card-static rise-in overflow-hidden p-5" style={{ animationDelay: "740ms" }}>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-200">Contas a Pagar</h3>
+              <p className="mt-1 text-xs text-slate-400">Simulação de desembolso para os próximos 30 dias</p>
+            </div>
+            <span className="rounded-lg bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-300">Simulação</span>
+          </div>
+          <div className="grid gap-2">
+            <div className="rounded-xl border border-slate-800/70 bg-slate-950/55 px-3 py-2.5">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Próximos 7 dias</p>
+              <p className="mt-1 text-sm font-semibold text-rose-300">{moneyFormatter.format(contasSimulacao.d7)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800/70 bg-slate-950/55 px-3 py-2.5">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Próximos 15 dias</p>
+              <p className="mt-1 text-sm font-semibold text-amber-300">{moneyFormatter.format(contasSimulacao.d15)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800/70 bg-slate-950/55 px-3 py-2.5">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Próximos 30 dias</p>
+              <p className="mt-1 text-sm font-semibold text-cyan-300">{moneyFormatter.format(contasSimulacao.d30)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-800/70 bg-slate-950/55 px-3 py-2.5">
+              <p className="text-[11px] uppercase tracking-wide text-slate-500">Folga projetada no mês</p>
+              <p className={`mt-1 text-sm font-semibold ${contasSimulacao.folga >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
+                {moneyFormatter.format(contasSimulacao.folga)}
+              </p>
+            </div>
           </div>
         </div>
       </div>
