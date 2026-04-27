@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Save, Search, Tv, UserCog, X } from "lucide-react";
-import { createManagedUser, listManagedUsers, updateManagedUser } from "../modules/users/service";
+import { Plus, Save, Search, Trash2, Tv, UserCog, X } from "lucide-react";
+import { createManagedUser, deleteManagedUser, listManagedUsers, updateManagedUser } from "../modules/users/service";
 import { useSession } from "../hooks/useSession";
 import type { UserRole } from "../types";
 
@@ -33,6 +33,7 @@ export function UsuariosPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createForm, setCreateForm] = useState<UserForm>(initialForm);
   const [inlineEdits, setInlineEdits] = useState<Record<string, Omit<UserForm, "email" | "password">>>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data: users = [], isLoading, isError, error } = useQuery({
     queryKey: ["managed-users"],
@@ -58,6 +59,16 @@ export function UsuariosPage() {
       setFeedback("Usuario atualizado com sucesso.");
     },
     onError: (err) => setFeedback(err instanceof Error ? err.message : "Falha ao atualizar usuario.")
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteManagedUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["managed-users"] });
+      setConfirmDeleteId(null);
+      setFeedback("Usuario excluido com sucesso.");
+    },
+    onError: (err) => { setFeedback(err instanceof Error ? err.message : "Falha ao excluir usuario."); setConfirmDeleteId(null); }
   });
 
   const filteredUsers = useMemo(() => {
@@ -268,6 +279,14 @@ export function UsuariosPage() {
                             <Save size={14} />
                             Salvar
                           </button>
+                          {confirmDeleteId === user.id ? (
+                            <>
+                              <button className="btn-danger !px-2 !py-1.5 !text-xs" onClick={() => deleteMutation.mutate(user.id)} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "..." : "Confirmar"}</button>
+                              <button className="btn-ghost !px-2 !py-1.5" onClick={() => setConfirmDeleteId(null)}>Cancelar</button>
+                            </>
+                          ) : (
+                            <button className="btn-ghost !px-2 !py-1.5 !text-rose-400 !border-rose-500/20" onClick={() => setConfirmDeleteId(user.id)} title="Excluir usuario"><Trash2 size={14} /></button>
+                          )}
                         </div>
                       </td>
                     </tr>

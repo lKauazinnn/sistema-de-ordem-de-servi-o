@@ -507,3 +507,13 @@ export async function updateContaPagarStatus(id: string, status: PaymentStatus) 
     throw new Error(error.message);
   }
 }
+
+export async function deleteContaPagar(id: string) {
+  const { error } = await supabase.from("contas_pagar").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteStreamingRegistro(id: string) {
+  const { error } = await supabase.from("streaming_assinaturas").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}

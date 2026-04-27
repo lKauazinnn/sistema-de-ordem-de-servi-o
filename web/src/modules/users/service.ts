@@ -101,3 +101,16 @@ export async function updateManagedUser(input: UpdateUserInput) {
 
   return payload.user as ManagedUser;
 }
+
+export async function deleteManagedUser(userId: string) {
+  const response = await fetch("/api/users/delete", {
+    method: "DELETE",
+    headers: await authHeaders(),
+    body: JSON.stringify({ id: userId })
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error ?? "Falha ao excluir usuario.");
+  }
+}

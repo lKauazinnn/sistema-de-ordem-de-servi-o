@@ -7,6 +7,7 @@ import { useSession } from "../hooks/useSession";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
 import type { AlertaEstoque } from "../hooks/useEstoqueAlerta";
 import { Logo } from "./Logo";
+import { SupportChat } from "./SupportChat";
 
 const baseLinks = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -197,6 +198,8 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
 
       <main className="mx-auto max-w-7xl px-4 pb-12 pt-4 lg:px-6">{children}</main>
+
+      <SupportChat />
 
       {/* Alertas de estoque baixo */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite">

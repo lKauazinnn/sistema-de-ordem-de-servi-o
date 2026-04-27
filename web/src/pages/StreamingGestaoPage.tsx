@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, Clock3, PlusCircle, Search, Tv, Wallet } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, PlusCircle, Search, Trash2, Tv, Wallet } from "lucide-react";
 import {
   createStreamingRegistro,
+  deleteStreamingRegistro,
   getStreamingResumo,
   getStreamingVencimentos,
   updateStreamingStatus
@@ -26,6 +27,7 @@ export function StreamingGestaoPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"todos" | "pendente" | "pago" | "alerta" | "vencido">("todos");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useRealtimeChannel(["streaming-resumo-page"], "streaming_assinaturas");
   useRealtimeChannel(["streaming-vencimentos-page"], "streaming_assinaturas");
@@ -57,6 +59,17 @@ export function StreamingGestaoPage() {
       queryClient.invalidateQueries({ queryKey: ["streaming-resumo-page"] });
       queryClient.invalidateQueries({ queryKey: ["streaming-vencimentos-page"] });
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteStreamingRegistro,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["streaming-resumo-page"] });
+      queryClient.invalidateQueries({ queryKey: ["streaming-vencimentos-page"] });
+      setConfirmDeleteId(null);
+      setFeedback("Registro excluído.");
+    },
+    onError: (err) => { setFeedback(err instanceof Error ? err.message : "Erro ao excluir."); setConfirmDeleteId(null); }
   });
 
   const data = useMemo(() => {
@@ -156,7 +169,7 @@ export function StreamingGestaoPage() {
           <table className="table-pro min-w-full">
             <thead>
               <tr>
-                <th>Cliente</th><th>Servidor</th><th>Dispositivo/App</th><th>Ativação</th><th>Vencimento</th><th>Status</th><th>Alerta</th><th className="text-right">Ação</th>
+                <th>Cliente</th><th>Servidor</th><th>Dispositivo/App</th><th>Ativação</th><th>Vencimento</th><th>Status</th><th>Alerta</th><th className="text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -176,10 +189,20 @@ export function StreamingGestaoPage() {
                     <td><span className={`badge ${item.alerta?.level === "vencido" ? "bg-rose-500/15 text-rose-300" : item.alerta?.level === "hoje" || item.alerta?.level === "um_dia" ? "bg-amber-500/15 text-amber-300" : "bg-slate-700/60 text-slate-300"}`}>{item.alerta?.message ?? "Em dia"}</span></td>
                     <td className="text-right">
                       {canManage ? (
-                        <button className="btn-ghost !px-2 !py-1" onClick={() => statusMutation.mutate({ id: item.id, status: item.status_pagamento === "pago" ? "pendente" : "pago" })} disabled={statusMutation.isPending}>
-                          <CheckCircle2 size={13} />
-                          {item.status_pagamento === "pago" ? "Marcar pendente" : "Marcar pago"}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button className="btn-ghost !px-2 !py-1" onClick={() => statusMutation.mutate({ id: item.id, status: item.status_pagamento === "pago" ? "pendente" : "pago" })} disabled={statusMutation.isPending}>
+                            <CheckCircle2 size={13} />
+                            {item.status_pagamento === "pago" ? "Pendente" : "Pago"}
+                          </button>
+                          {confirmDeleteId === item.id ? (
+                            <>
+                              <button className="btn-danger !px-2 !py-1 !text-xs" onClick={() => deleteMutation.mutate(item.id)} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "..." : "Confirmar"}</button>
+                              <button className="btn-ghost !px-2 !py-1" onClick={() => setConfirmDeleteId(null)}>Cancelar</button>
+                            </>
+                          ) : (
+                            <button className="btn-ghost !px-2 !py-1 !text-rose-400 !border-rose-500/20" onClick={() => setConfirmDeleteId(item.id)} title="Excluir"><Trash2 size={13} /></button>
+                          )}
+                        </div>
                       ) : null}
                     </td>
                   </tr>
