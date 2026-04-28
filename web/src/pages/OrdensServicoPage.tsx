@@ -91,7 +91,8 @@ export function OrdensServicoPage() {
     queryFn: async () => {
       const { data: clientesData, error } = await supabase
         .from("clientes")
-        .select("id,nome_razao_social,cpf_cnpj,telefone,email,endereco,cep")
+        .select("id,nome_razao_social,cpf_cnpj,telefone,email,endereco,cep,ativo")
+        .eq("ativo", true)
         .order("nome_razao_social");
       if (error) throw new Error(error.message);
       return (clientesData ?? []) as Cliente[];

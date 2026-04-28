@@ -9,13 +9,14 @@ import { ClientesPage } from "./pages/ClientesPage";
 import { StreamingGestaoPage } from "./pages/StreamingGestaoPage";
 import { ContasPagarPage } from "./pages/ContasPagarPage";
 import { UsuariosPage } from "./pages/UsuariosPage";
+import { appAccess } from "./lib/rbac";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
-      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente", "tecnico"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.dashboard} />}>
         <Route
           path="/"
           element={
@@ -26,7 +27,7 @@ export default function App() {
         />
       </Route>
 
-      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente", "tecnico"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.ordensServico} />}>
         <Route
           path="/os"
           element={
@@ -37,7 +38,7 @@ export default function App() {
         />
       </Route>
 
-      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.estoque} />}>
         <Route
           path="/estoque"
           element={
@@ -48,7 +49,7 @@ export default function App() {
         />
       </Route>
 
-      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.clientes} />}>
         <Route
           path="/clientes"
           element={
@@ -59,7 +60,7 @@ export default function App() {
         />
       </Route>
 
-      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente", "tecnico"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.streaming} />}>
         <Route
           path="/streaming"
           element={
@@ -70,7 +71,7 @@ export default function App() {
         />
       </Route>
 
-      <Route element={<RouteGuard allowedRoles={["admin", "gerente", "atendente", "tecnico"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.contasPagar} />}>
         <Route
           path="/contas-pagar"
           element={
@@ -81,7 +82,7 @@ export default function App() {
         />
       </Route>
 
-      <Route element={<RouteGuard allowedRoles={["admin"]} />}>
+      <Route element={<RouteGuard allowedRoles={appAccess.usuarios} />}>
         <Route
           path="/usuarios"
           element={

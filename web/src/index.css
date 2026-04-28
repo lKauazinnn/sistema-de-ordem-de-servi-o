@@ -250,8 +250,51 @@ body {
 .login-mesh {
   background:
     radial-gradient(circle at 8% 18%, rgba(34, 211, 238, 0.12), transparent 36%),
-    radial-gradient(circle at 88% 80%, rgba(99, 102, 241, 0.06), transparent 36%),
-    linear-gradient(145deg, #000000 0%, #050505 44%, #020202 100%);
+    radial-gradient(circle at 88% 80%, rgba(245, 158, 11, 0.08), transparent 32%),
+    linear-gradient(145deg, #020617 0%, #020617 34%, #042f2e 100%);
+}
+
+.login-shell {
+  background:
+    linear-gradient(135deg, rgba(2, 6, 23, 0.94) 0%, rgba(8, 15, 32, 0.8) 52%, rgba(15, 23, 42, 0.76) 100%);
+}
+
+.login-form-glass {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 24px 70px rgba(2, 6, 23, 0.4);
+}
+
+.login-aurora {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(70px);
+  opacity: 0.8;
+}
+
+.login-aurora-one {
+  left: -4rem;
+  top: -3rem;
+  height: 18rem;
+  width: 18rem;
+  background: rgba(34, 211, 238, 0.16);
+}
+
+.login-aurora-two {
+  right: -6rem;
+  top: 18%;
+  height: 22rem;
+  width: 22rem;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.login-aurora-three {
+  bottom: -6rem;
+  left: 28%;
+  height: 20rem;
+  width: 20rem;
+  background: rgba(251, 191, 36, 0.12);
 }
 
 .login-grid-overlay {
@@ -369,8 +412,19 @@ html[data-theme="light"] .skeleton {
 html[data-theme="light"] .login-mesh {
   background:
     radial-gradient(circle at 8% 18%, rgba(6, 182, 212, 0.15), transparent 36%),
-    radial-gradient(circle at 88% 80%, rgba(99, 102, 241, 0.08), transparent 36%),
-    linear-gradient(145deg, #e2e8f0 0%, #f1f5f9 44%, #f8fafc 100%);
+    radial-gradient(circle at 88% 80%, rgba(245, 158, 11, 0.12), transparent 32%),
+    linear-gradient(145deg, #dbeafe 0%, #eef2ff 40%, #f8fafc 100%);
+}
+
+html[data-theme="light"] .login-shell {
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(240, 249, 255, 0.84) 52%, rgba(255, 255, 255, 0.82) 100%);
+}
+
+html[data-theme="light"] .login-form-glass {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 24px 70px rgba(148, 163, 184, 0.22);
 }
 
 /* Text overrides for light theme */

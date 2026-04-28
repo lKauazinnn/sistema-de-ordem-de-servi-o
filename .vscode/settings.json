@@ -1,0 +1,9 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "npm --prefix \"c:\\Users\\lkaua\\Desktop\\projeto": true,
+        "/^cmd /c npm --prefix \"c:\\\\Users\\\\lkaua\\\\Desktop\\\\projeto ordem de serviço\\\\web\" run build$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

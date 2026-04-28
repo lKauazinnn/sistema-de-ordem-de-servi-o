@@ -24,7 +24,7 @@ const initialClienteForm: ClienteFormState = {
 };
 
 async function listClientes() {
-  const { data, error } = await supabase.from("clientes").select("*").order("nome_razao_social");
+  const { data, error } = await supabase.from("clientes").select("*").eq("ativo", true).order("nome_razao_social");
   if (error) throw new Error(error.message);
   return (data ?? []) as Cliente[];
 }
@@ -64,11 +64,11 @@ export function ClientesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (clienteId: string) => {
-      const { error } = await supabase.from("clientes").delete().eq("id", clienteId);
+      const { error } = await supabase.from("clientes").update({ ativo: false }).eq("id", clienteId).eq("ativo", true);
       if (error) throw new Error(error.message);
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clientes"] }); queryClient.invalidateQueries({ queryKey: ["clientes-select"] }); setConfirmDeleteId(null); setFeedback("Cliente excluído."); },
-    onError: (err) => { setFeedback(err instanceof Error ? err.message : "Erro ao excluir."); setConfirmDeleteId(null); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["clientes"] }); queryClient.invalidateQueries({ queryKey: ["clientes-select"] }); setConfirmDeleteId(null); setFeedback("Cliente inativado."); },
+    onError: (err) => { setFeedback(err instanceof Error ? err.message : "Erro ao inativar."); setConfirmDeleteId(null); }
   });
 
   function abrirModal(cliente?: Cliente) {
@@ -163,7 +163,7 @@ export function ClientesPage() {
                               <button className="btn-ghost !px-2 !py-1" onClick={() => setConfirmDeleteId(null)}>Não</button>
                             </span>
                           ) : (
-                            <button className="btn-ghost !px-2 !py-1.5 !text-rose-400 !border-rose-500/20" onClick={() => { setConfirmDeleteId(cliente.id); setFeedback(null); }} title="Excluir"><Trash2 size={13} /></button>
+                            <button className="btn-ghost !px-2 !py-1.5 !text-rose-400 !border-rose-500/20" onClick={() => { setConfirmDeleteId(cliente.id); setFeedback(null); }} title="Inativar"><Trash2 size={13} /></button>
                           )
                         )}
                       </div>

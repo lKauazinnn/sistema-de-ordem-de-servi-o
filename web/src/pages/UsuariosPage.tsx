@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Save, Search, Trash2, Tv, UserCog, X } from "lucide-react";
 import { createManagedUser, deleteManagedUser, listManagedUsers, updateManagedUser } from "../modules/users/service";
-import { useSession } from "../hooks/useSession";
+import { usePermissions } from "../hooks/usePermissions";
+import { roleGroups } from "../lib/rbac";
 import type { UserRole } from "../types";
 
 type UserForm = {
@@ -27,7 +28,7 @@ const ROLE_OPTIONS: UserRole[] = ["admin", "gerente", "atendente", "tecnico"];
 
 export function UsuariosPage() {
   const queryClient = useQueryClient();
-  const { role } = useSession();
+  const { role, hasRole } = usePermissions();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -152,7 +153,7 @@ export function UsuariosPage() {
     });
   }
 
-  if (role !== "admin") {
+  if (!hasRole(...roleGroups.adminOnly)) {
     return (
       <div className="card-static max-w-3xl p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">Acesso restrito</p>

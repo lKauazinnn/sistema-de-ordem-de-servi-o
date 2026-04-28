@@ -4,8 +4,10 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, BellRing, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
 import { useSession } from "../hooks/useSession";
+import { PermissionGuard } from "../hooks/usePermissions";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
 import type { AlertaEstoque } from "../hooks/useEstoqueAlerta";
+import { roleGroups } from "../lib/rbac";
 import { Logo } from "./Logo";
 import { SupportChat } from "./SupportChat";
 
@@ -133,6 +135,13 @@ export function AppShell({ children }: PropsWithChildren) {
               <BellRing size={13} />
               Sistema online
             </div>
+
+            <PermissionGuard allowedRoles={roleGroups.leadership}>
+              <div className="hidden items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-100 xl:flex">
+                <UserCog size={13} />
+                Painel com gestão ampliada
+              </div>
+            </PermissionGuard>
 
             <button
               onClick={cycleTheme}

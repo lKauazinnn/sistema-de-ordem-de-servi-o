@@ -24,5 +24,10 @@ var hmrConfig = ngrokHost
 export default defineConfig({
     envDir: "..",
     plugins: [react()],
-    server: __assign({ host: true, strictPort: true, port: 5173, allowedHosts: true }, hmrConfig)
+    server: __assign({ host: true, strictPort: true, port: 5173, allowedHosts: true, proxy: {
+            "/api": {
+                target: "http://localhost:3000",
+                changeOrigin: true
+            }
+        } }, hmrConfig)
 });

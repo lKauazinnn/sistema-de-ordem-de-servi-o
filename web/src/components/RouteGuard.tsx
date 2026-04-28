@@ -1,23 +1,23 @@
 import { Navigate, Outlet } from "react-router-dom";
 import type { UserRole } from "../types";
-import { useSession } from "../hooks/useSession";
+import { usePermissions } from "../hooks/usePermissions";
 
 type Props = {
   allowedRoles: UserRole[];
 };
 
 export function RouteGuard({ allowedRoles }: Props) {
-  const { loading, user, role } = useSession();
+  const { loading, isAuthenticated, canAccess } = usePermissions();
 
   if (loading) {
     return <div className="p-8">Carregando...</div>;
   }
 
-  if (!user || !role) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!allowedRoles.includes(role)) {
+  if (!canAccess({ allowedRoles })) {
     return <Navigate to="/" replace />;
   }
 

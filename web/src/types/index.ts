@@ -33,6 +33,7 @@ export interface Cliente {
   email: string | null;
   endereco: string | null;
   cep: string | null;
+  ativo: boolean;
 }
 
 export interface OrdemServico {
