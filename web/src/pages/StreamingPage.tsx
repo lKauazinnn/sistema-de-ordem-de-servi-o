@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, PlayCircle, Tv } from "lucide-react";
+import { ExternalLink, PlayCircle, ShieldAlert, Tv } from "lucide-react";
 import { useSession } from "../hooks/useSession";
 
 const DEFAULT_HINT = "https://seu-player-streaming.com/canal-principal";
@@ -12,7 +12,10 @@ export function StreamingPage() {
   if (!canAccessStreaming) {
     return (
       <div className="card-static max-w-3xl p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">Acesso restrito</p>
+        <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+          <ShieldAlert size={13} />
+          Acesso restrito
+        </p>
         <h2 className="mt-2 font-display text-2xl font-bold text-white">Painel de Streaming indisponivel</h2>
         <p className="mt-3 text-sm text-slate-300">
           Este usuario ainda nao tem o recurso de IPTV/streaming habilitado.

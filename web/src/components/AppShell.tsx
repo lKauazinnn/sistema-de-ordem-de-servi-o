@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, BellRing, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
 import { useSession } from "../hooks/useSession";
-import { PermissionGuard } from "../hooks/usePermissions";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
 import type { AlertaEstoque } from "../hooks/useEstoqueAlerta";
-import { roleGroups } from "../lib/rbac";
 import { Logo } from "./Logo";
 import { SupportChat } from "./SupportChat";
 
@@ -86,11 +84,10 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-slate-100">
       <header className="glass-header sticky top-0 z-40">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-6">
-          {/* Brand */}
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
           <Link
             to="/"
-            className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-all hover:bg-white/5"
+            className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/5"
             aria-label="Ir para Dashboard"
           >
             <Logo size={34} />
@@ -100,7 +97,6 @@ export function AppShell({ children }: PropsWithChildren) {
             </div>
           </Link>
 
-          {/* Desktop Nav */}
           <nav className="hidden items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] px-2 py-1.5 md:flex">
             {links.map((item) => {
               const Icon = item.icon;
@@ -111,7 +107,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   to={item.to}
                   className={`nav-pill flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-2 text-[12px] font-medium ${
                     active
-                      ? "bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/30 shadow-[0_0_0_1px_rgba(34,211,238,0.15)]"
+                      ? "bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/30"
                       : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
@@ -122,30 +118,22 @@ export function AppShell({ children }: PropsWithChildren) {
             })}
           </nav>
 
-          {/* Right side */}
-          <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 lg:flex">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-xs font-bold text-cyan-200 ring-1 ring-cyan-400/20">
+          <div className="flex items-center gap-2.5">
+            <div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 lg:flex">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-[11px] font-bold text-cyan-200 ring-1 ring-cyan-400/20">
                 {(user?.email?.[0] ?? "U").toUpperCase()}
               </div>
-              <span className="max-w-[140px] truncate text-xs text-slate-300">{user?.email ?? ""}</span>
+              <span className="max-w-[150px] truncate text-xs text-slate-300">{user?.email ?? ""}</span>
             </div>
 
-            <div className="hidden items-center gap-1.5 rounded-xl border border-cyan-500/20 bg-cyan-500/8 px-2.5 py-1.5 text-[11px] font-medium text-cyan-100 xl:flex">
-              <BellRing size={13} />
-              Sistema online
+            <div className="hidden items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-medium text-emerald-200 xl:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+              Online
             </div>
-
-            <PermissionGuard allowedRoles={roleGroups.leadership}>
-              <div className="hidden items-center gap-1.5 rounded-xl border border-amber-400/20 bg-amber-400/10 px-2.5 py-1.5 text-[11px] font-medium text-amber-100 xl:flex">
-                <UserCog size={13} />
-                Painel com gestão ampliada
-              </div>
-            </PermissionGuard>
 
             <button
               onClick={cycleTheme}
-              className="flex items-center justify-center rounded-xl bg-slate-800/80 p-2 text-slate-300 ring-1 ring-slate-700/70 transition-all hover:bg-slate-700/80 hover:text-white"
+              className="flex items-center justify-center rounded-xl bg-slate-800/80 p-2 text-slate-300 ring-1 ring-slate-700/70 transition-colors hover:bg-slate-700/80 hover:text-white"
               title={themeLabel}
             >
               {themeIcon}
@@ -154,14 +142,13 @@ export function AppShell({ children }: PropsWithChildren) {
             <button
               onClick={handleRelogar}
               disabled={isRelogging}
-              className="flex items-center gap-1.5 rounded-xl bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-200 ring-1 ring-slate-700/70 transition-all hover:bg-slate-700/80 hover:text-white disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-slate-800/80 px-3 py-2 text-xs font-medium text-slate-200 ring-1 ring-slate-700/70 transition-colors hover:bg-slate-700/80 hover:text-white disabled:opacity-50"
               title="Sair e fazer login novamente"
             >
               <LogOut size={13} />
               <span className="hidden sm:inline">{isRelogging ? "Saindo..." : "Sair"}</span>
             </button>
 
-            {/* Mobile menu toggle */}
             <button
               className="rounded-xl p-2 text-slate-300 transition hover:bg-white/5 hover:text-white md:hidden"
               onClick={() => setMobileOpen((prev) => !prev)}
@@ -171,7 +158,6 @@ export function AppShell({ children }: PropsWithChildren) {
           </div>
         </div>
 
-        {/* Mobile Nav */}
         {mobileOpen && (
           <nav className="fade-in border-t border-slate-800/50 px-4 pb-3 pt-2 md:hidden">
             {links.map((item) => {
@@ -196,7 +182,6 @@ export function AppShell({ children }: PropsWithChildren) {
         )}
       </header>
 
-      {/* Breadcrumb */}
       <div className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <Sparkles size={12} className="text-cyan-400/60" />

@@ -736,7 +736,7 @@ export function DashboardPage() {
             </div>
             {loadingEstoqueAlertas ? <LoadingChart /> : (produtosAlerta?.length ?? 0) === 0 ? (
               <div className="flex h-40 items-center justify-center gap-2 text-sm text-emerald-500">
-                <Package size={15} /> Todos os itens OK
+                <CheckCircle size={15} /> Todos os itens OK
               </div>
             ) : (
               <div className="overflow-auto">

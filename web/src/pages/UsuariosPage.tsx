@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Save, Search, Trash2, Tv, UserCog, X } from "lucide-react";
+import { Plus, Save, Search, ShieldAlert, Trash2, Tv, UserCog, X } from "lucide-react";
 import { createManagedUser, deleteManagedUser, listManagedUsers, updateManagedUser } from "../modules/users/service";
 import { usePermissions } from "../hooks/usePermissions";
 import { roleGroups } from "../lib/rbac";
@@ -156,7 +156,10 @@ export function UsuariosPage() {
   if (!hasRole(...roleGroups.adminOnly)) {
     return (
       <div className="card-static max-w-3xl p-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">Acesso restrito</p>
+        <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/80">
+          <ShieldAlert size={13} />
+          Acesso restrito
+        </p>
         <h2 className="mt-2 font-display text-2xl font-bold text-white">Sem permissao para gerenciar usuarios</h2>
         <p className="mt-3 text-sm text-slate-300">Esta area e exclusiva para administradores.</p>
       </div>
