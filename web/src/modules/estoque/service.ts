@@ -21,11 +21,12 @@ export async function listProdutos() {
   return (data ?? []) as Produto[];
 }
 
-export async function registrarSaidaManual(input: { produto_id: string; quantidade: number; justificativa: string }) {
+export async function registrarSaidaManual(input: { produto_id: string; quantidade: number; justificativa: string; numero_nf_saida?: string | null }) {
   const { error } = await supabase.rpc("registrar_saida_manual", {
     p_produto_id: input.produto_id,
     p_quantidade: input.quantidade,
-    p_justificativa: input.justificativa
+    p_justificativa: input.justificativa,
+    p_numero_nf_saida: input.numero_nf_saida ?? null
   });
 
   if (error) {

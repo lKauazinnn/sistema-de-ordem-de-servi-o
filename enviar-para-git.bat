@@ -35,8 +35,24 @@ if errorlevel 1 (
   echo Remote origin ja configurado.
 )
 
-:: Garantir que a branch se chama main
-git branch -M main 2>nul
+:: Garantir que os comandos rodem na branch main (evita detached HEAD)
+git rev-parse --verify main >nul 2>&1
+if errorlevel 1 (
+  git ls-remote --exit-code --heads origin main >nul 2>&1
+  if not errorlevel 1 (
+    git switch -c main --track origin/main
+  ) else (
+    git switch -c main
+  )
+) else (
+  git switch main
+)
+
+if errorlevel 1 (
+  echo [ERRO] Nao foi possivel trocar para a branch main.
+  pause
+  exit /b 1
+)
 
 :: Perguntar mensagem de commit
 echo.
@@ -57,22 +73,46 @@ git diff --cached --quiet
 if not errorlevel 1 (
   echo Nao ha alteracoes para commitar.
 ) else (
+  set "GIT_USER_NAME="
+  set "GIT_USER_EMAIL="
+  for /f "delims=" %%i in ('git config user.name') do set "GIT_USER_NAME=%%i"
+  for /f "delims=" %%i in ('git config user.email') do set "GIT_USER_EMAIL=%%i"
+
+  if "%GIT_USER_NAME%"=="" (
+    echo.
+    echo [ERRO] Identidade Git nao configurada ^(user.name^).
+    echo Configure uma vez e execute novamente:
+    echo   git config --global user.name "Seu Nome"
+    echo   git config --global user.email "seu-email@exemplo.com"
+    pause
+    exit /b 1
+  )
+
+  if "%GIT_USER_EMAIL%"=="" (
+    echo.
+    echo [ERRO] Identidade Git nao configurada ^(user.email^).
+    echo Configure uma vez e execute novamente:
+    echo   git config --global user.name "Seu Nome"
+    echo   git config --global user.email "seu-email@exemplo.com"
+    pause
+    exit /b 1
+  )
+
   echo Criando commit: %COMMIT_MSG%
   git commit -m "%COMMIT_MSG%"
+  if errorlevel 1 (
+    echo.
+    echo [ERRO] Nao foi possivel criar o commit. Corrija o erro acima e tente novamente.
+    pause
+    exit /b 1
+  )
 )
 
 echo.
 echo Sincronizando com o GitHub...
 git ls-remote --exit-code --heads origin main >nul 2>&1
 if not errorlevel 1 (
-  git fetch origin main
-  if errorlevel 1 (
-    echo [ERRO] Nao foi possivel atualizar referencias do remoto.
-    pause
-    exit /b 1
-  )
-
-  git rebase origin/main
+  git pull --rebase origin main
   if errorlevel 1 (
     echo.
     echo [ERRO] Houve conflito ao sincronizar com o remoto.

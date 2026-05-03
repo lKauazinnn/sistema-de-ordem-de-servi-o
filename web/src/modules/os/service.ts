@@ -56,10 +56,10 @@ function validateSerialOrImeiLocally(value: string, tipoEquipamento?: string): I
 
   if (!normalized) {
     return {
-      valid: false,
+      valid: true,
       type: "serial",
       normalized,
-      message: "Informe o Serial/IMEI."
+      message: "Serial/IMEI nao informado."
     };
   }
 

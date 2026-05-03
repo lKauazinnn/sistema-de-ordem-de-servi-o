@@ -75,7 +75,7 @@ export function OrdensServicoPage() {
   const [notaModal, setNotaModal] = useState<NotaModalState | null>(null);
   const [notaForm, setNotaForm] = useState<NotaFormState>(initialNotaForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const { user } = useSession();
+  const { user, profile } = useSession();
   const queryClient = useQueryClient();
 
   const isOwner = user?.email === "lkaua.lopes01@gmail.com" || user?.app_metadata?.role === "admin";
@@ -352,7 +352,7 @@ export function OrdensServicoPage() {
                           </button>
                         )}
                         <button className="btn-ghost !px-2 !py-1.5" onClick={() => abrirModalEditarOs(os)} title="Editar"><Edit3 size={13} /></button>
-                        <button className="btn-ghost !px-2 !py-1.5" onClick={() => gerarPdfOS(os)} title="PDF"><Download size={13} /></button>
+                        <button className="btn-ghost !px-2 !py-1.5" onClick={() => gerarPdfOS(os, profile ?? undefined)} title="PDF"><Download size={13} /></button>
                         <button className="btn-ghost !px-2 !py-1.5 !text-indigo-300 !border-indigo-500/20" onClick={() => abrirModalNota(os.id, os.cliente_id, os.numero_sequencial, `${os.tipo_equipamento} ${os.marca} ${os.modelo}`)} disabled={notaMutation.isPending} title="Nota"><FileText size={13} /></button>
                         <button className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20" onClick={() => handleEmitirNfe(os.id, os.cliente_id)} disabled={nfeMutation.isPending} title="NF-e"><Zap size={13} /></button>
                         {isOwner && (
@@ -390,7 +390,7 @@ export function OrdensServicoPage() {
       {/* OS Modal (Create / Edit) */}
       {showOsModal && (
         <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="modal-content card-static w-full max-w-4xl border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
+          <div className="modal-content card-static max-h-[85vh] w-full max-w-4xl overflow-y-auto border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400/70">{editingOsId ? "Editar" : "Nova"} Ordem de Serviço</p>
@@ -511,7 +511,7 @@ export function OrdensServicoPage() {
       {/* Nota Modal */}
       {notaModal && (
         <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="modal-content card-static w-full max-w-3xl border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
+          <div className="modal-content card-static max-h-[85vh] w-full max-w-3xl overflow-y-auto border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-400/70">Nota de Serviço</p>

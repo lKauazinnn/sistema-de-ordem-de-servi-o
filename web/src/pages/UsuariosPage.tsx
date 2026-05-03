@@ -13,6 +13,9 @@ type UserForm = {
   role: UserRole;
   streaming_panel: boolean;
   streaming_url: string;
+  assistencia_nome: string;
+  assistencia_cnpj: string;
+  assistencia_telefone: string;
 };
 
 const initialForm: UserForm = {
@@ -21,7 +24,10 @@ const initialForm: UserForm = {
   nome: "",
   role: "tecnico",
   streaming_panel: false,
-  streaming_url: ""
+  streaming_url: "",
+  assistencia_nome: "",
+  assistencia_cnpj: "",
+  assistencia_telefone: ""
 };
 
 const ROLE_OPTIONS: UserRole[] = ["admin", "gerente", "atendente", "tecnico"];
@@ -91,7 +97,10 @@ export function UsuariosPage() {
         nome: user.nome,
         role: user.role,
         streaming_panel: Boolean(user.user_features?.streaming_panel),
-        streaming_url: user.streaming_url ?? ""
+        streaming_url: user.streaming_url ?? "",
+        assistencia_nome: user.assistencia_nome ?? "",
+        assistencia_cnpj: user.assistencia_cnpj ?? "",
+        assistencia_telefone: user.assistencia_telefone ?? ""
       }
     );
   }
@@ -105,6 +114,9 @@ export function UsuariosPage() {
         role: current?.role ?? "tecnico",
         streaming_panel: current?.streaming_panel ?? false,
         streaming_url: current?.streaming_url ?? "",
+        assistencia_nome: current?.assistencia_nome ?? "",
+        assistencia_cnpj: current?.assistencia_cnpj ?? "",
+        assistencia_telefone: current?.assistencia_telefone ?? "",
         ...patch
       }
     }));
@@ -126,7 +138,10 @@ export function UsuariosPage() {
       user_features: {
         streaming_panel: createForm.streaming_panel
       },
-      streaming_url: createForm.streaming_panel ? (createForm.streaming_url.trim() || null) : null
+      streaming_url: createForm.streaming_panel ? (createForm.streaming_url.trim() || null) : null,
+      assistencia_nome: createForm.assistencia_nome.trim() || null,
+      assistencia_cnpj: createForm.assistencia_cnpj.trim() || null,
+      assistencia_telefone: createForm.assistencia_telefone.trim() || null
     });
   }
 
@@ -143,7 +158,10 @@ export function UsuariosPage() {
       user_features: {
         streaming_panel: values.streaming_panel
       },
-      streaming_url: values.streaming_panel ? (values.streaming_url.trim() || null) : null
+      streaming_url: values.streaming_panel ? (values.streaming_url.trim() || null) : null,
+      assistencia_nome: values.assistencia_nome.trim() || null,
+      assistencia_cnpj: values.assistencia_cnpj.trim() || null,
+      assistencia_telefone: values.assistencia_telefone.trim() || null
     });
 
     setInlineEdits((previous) => {
@@ -171,7 +189,7 @@ export function UsuariosPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="font-display text-2xl font-bold text-white">Gerenciamento de Usuarios</h2>
-          <p className="text-sm text-slate-400">Defina papel e recursos personalizados por usuario.</p>
+          <p className="text-sm text-slate-400">Defina papel, recursos e padroes da assistencia tecnica por usuario.</p>
         </div>
         <button className="btn-primary" onClick={() => setCreateModalOpen(true)}>
           <Plus size={16} />
@@ -200,11 +218,14 @@ export function UsuariosPage() {
 
       <div className="card-static overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="table-pro min-w-full">
+          <table className="table-pro min-w-[1120px]">
             <thead>
               <tr>
                 <th>Usuario</th>
                 <th>Papel</th>
+                <th>Assistencia</th>
+                <th>CNPJ</th>
+                <th>Telefone</th>
                 <th>Streaming</th>
                 <th>URL do painel</th>
                 <th className="text-right">Acoes</th>
@@ -213,17 +234,17 @@ export function UsuariosPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-slate-400">Carregando usuarios...</td>
+                  <td colSpan={8} className="text-center text-slate-400">Carregando usuarios...</td>
                 </tr>
               ) : isError ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-rose-300">
+                  <td colSpan={8} className="text-center text-rose-300">
                     {error instanceof Error ? error.message : "Erro ao listar usuarios."}
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center text-slate-500">Nenhum usuario encontrado.</td>
+                  <td colSpan={8} className="text-center text-slate-500">Nenhum usuario encontrado.</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
@@ -252,6 +273,30 @@ export function UsuariosPage() {
                             </option>
                           ))}
                         </select>
+                      </td>
+                      <td>
+                        <input
+                          value={edit.assistencia_nome}
+                          onChange={(event) => setEditableState(user.id, { assistencia_nome: event.target.value })}
+                          className="input-dark !h-9 !py-1.5"
+                          placeholder="Nome da assistencia"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={edit.assistencia_cnpj}
+                          onChange={(event) => setEditableState(user.id, { assistencia_cnpj: event.target.value })}
+                          className="input-dark !h-9 !py-1.5"
+                          placeholder="00.000.000/0000-00"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={edit.assistencia_telefone}
+                          onChange={(event) => setEditableState(user.id, { assistencia_telefone: event.target.value })}
+                          className="input-dark !h-9 !py-1.5"
+                          placeholder="(00) 00000-0000"
+                        />
                       </td>
                       <td>
                         <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-300">
@@ -304,7 +349,7 @@ export function UsuariosPage() {
 
       {createModalOpen ? (
         <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="modal-content card-static w-full max-w-2xl border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
+          <div className="modal-content card-static max-h-[85vh] w-full max-w-3xl overflow-y-auto border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400/70">Novo acesso</p>
@@ -355,6 +400,33 @@ export function UsuariosPage() {
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="block text-sm sm:col-span-2">
+                <span className="mb-1.5 block font-medium text-slate-300">Nome da assistencia tecnica</span>
+                <input
+                  value={createForm.assistencia_nome}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_nome: event.target.value }))}
+                  className="input-dark"
+                  placeholder="Minha Assistencia"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">CNPJ da assistencia</span>
+                <input
+                  value={createForm.assistencia_cnpj}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_cnpj: event.target.value }))}
+                  className="input-dark"
+                  placeholder="00.000.000/0000-00"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Telefone da assistencia</span>
+                <input
+                  value={createForm.assistencia_telefone}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_telefone: event.target.value }))}
+                  className="input-dark"
+                  placeholder="(00) 00000-0000"
+                />
               </label>
             </div>
 

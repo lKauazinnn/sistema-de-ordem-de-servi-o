@@ -10,7 +10,10 @@ const schema = z.object({
   user_features: z.object({
     streaming_panel: z.boolean().optional()
   }).optional(),
-  streaming_url: z.string().url().optional().or(z.literal("")).nullable()
+  streaming_url: z.string().url().optional().or(z.literal("")).nullable(),
+  assistencia_nome: z.string().min(2).max(120).optional().or(z.literal("")).nullable(),
+  assistencia_cnpj: z.string().max(32).optional().or(z.literal("")).nullable(),
+  assistencia_telefone: z.string().max(32).optional().or(z.literal("")).nullable()
 });
 
 export default async function handler(req: any, res: any) {
@@ -27,10 +30,19 @@ export default async function handler(req: any, res: any) {
     const input = parseBody(schema, req.body);
     const updateAuthPayload: {
       app_metadata?: { role?: string; user_features?: { streaming_panel?: boolean } };
-      user_metadata?: { nome?: string; streaming_url?: string | null };
+      user_metadata?: {
+        nome?: string;
+        streaming_url?: string | null;
+        assistencia_nome?: string | null;
+        assistencia_cnpj?: string | null;
+        assistencia_telefone?: string | null;
+      };
     } = {};
 
     const cleanedStreamingUrl = typeof input.streaming_url === "string" ? input.streaming_url.trim() : null;
+    const cleanedAssistenciaNome = typeof input.assistencia_nome === "string" ? sanitizeString(input.assistencia_nome) : null;
+    const cleanedAssistenciaCnpj = typeof input.assistencia_cnpj === "string" ? sanitizeString(input.assistencia_cnpj) : null;
+    const cleanedAssistenciaTelefone = typeof input.assistencia_telefone === "string" ? sanitizeString(input.assistencia_telefone) : null;
 
     if (input.role) {
       updateAuthPayload.app_metadata = {
@@ -62,6 +74,15 @@ export default async function handler(req: any, res: any) {
       };
     }
 
+    if (input.assistencia_nome !== undefined || input.assistencia_cnpj !== undefined || input.assistencia_telefone !== undefined) {
+      updateAuthPayload.user_metadata = {
+        ...(updateAuthPayload.user_metadata ?? {}),
+        assistencia_nome: cleanedAssistenciaNome || null,
+        assistencia_cnpj: cleanedAssistenciaCnpj || null,
+        assistencia_telefone: cleanedAssistenciaTelefone || null
+      };
+    }
+
     if (updateAuthPayload.app_metadata || updateAuthPayload.user_metadata) {
       const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(input.id, updateAuthPayload);
       if (authError) {
@@ -90,6 +111,18 @@ export default async function handler(req: any, res: any) {
       profilePatch.streaming_url = cleanedStreamingUrl || null;
     }
 
+    if (input.assistencia_nome !== undefined) {
+      profilePatch.assistencia_nome = cleanedAssistenciaNome || null;
+    }
+
+    if (input.assistencia_cnpj !== undefined) {
+      profilePatch.assistencia_cnpj = cleanedAssistenciaCnpj || null;
+    }
+
+    if (input.assistencia_telefone !== undefined) {
+      profilePatch.assistencia_telefone = cleanedAssistenciaTelefone || null;
+    }
+
     if (wantsStreamingEnabled === false) {
       profilePatch.streaming_url = null;
       updateAuthPayload.user_metadata = {
@@ -111,7 +144,7 @@ export default async function handler(req: any, res: any) {
 
     const { data: updatedProfile, error: fetchError } = await supabaseAdmin
       .from("profiles")
-      .select("id,nome,email,role,user_features,streaming_url,created_at")
+      .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,created_at")
       .eq("id", input.id)
       .single();
 

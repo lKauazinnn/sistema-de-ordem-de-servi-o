@@ -49,10 +49,10 @@ export function validateSerialOrImei(input: ValidateInput): ValidateResult {
 
   if (!normalized) {
     return {
-      valid: false,
+      valid: true,
       type: "serial",
       normalized,
-      message: "Informe o Serial/IMEI."
+      message: "Serial/IMEI nao informado."
     };
   }
 

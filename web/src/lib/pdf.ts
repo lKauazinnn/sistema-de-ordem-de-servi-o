@@ -1,11 +1,19 @@
 import jsPDF from "jspdf";
-import type { OrdemServico } from "../types";
+import type { AssistenciaTecnicaProfile, OrdemServico } from "../types";
 
 const COMPANY = {
   nome: import.meta.env.VITE_COMPANY_NAME ?? "OrdemFlow Tech",
   cnpj: import.meta.env.VITE_COMPANY_CNPJ ?? "--",
   telefone: import.meta.env.VITE_COMPANY_PHONE ?? "--"
 };
+
+function resolveCompany(company?: Partial<AssistenciaTecnicaProfile>) {
+  return {
+    nome: company?.assistencia_nome?.trim() || COMPANY.nome,
+    cnpj: company?.assistencia_cnpj?.trim() || COMPANY.cnpj,
+    telefone: company?.assistencia_telefone?.trim() || COMPANY.telefone
+  };
+}
 
 function formatarStatus(status: string) {
   return status.replace(/_/g, " ");
@@ -22,8 +30,9 @@ function addSectionTitle(doc: jsPDF, title: string, y: number) {
   doc.text(title, 21, y);
 }
 
-export function gerarPdfOS(os: OrdemServico) {
+export function gerarPdfOS(os: OrdemServico, company?: Partial<AssistenciaTecnicaProfile>) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const companyData = resolveCompany(company);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const generatedAt = new Date();
@@ -44,7 +53,7 @@ export function gerarPdfOS(os: OrdemServico) {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(71, 85, 105);
-  doc.text(`${COMPANY.nome}  |  CNPJ ${COMPANY.cnpj}  |  ${COMPANY.telefone}`, 14, 21);
+  doc.text(`${companyData.nome}  |  CNPJ ${companyData.cnpj}  |  ${companyData.telefone}`, 14, 21);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -155,7 +164,7 @@ export function gerarPdfOS(os: OrdemServico) {
   doc.setTextColor(100, 116, 139);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
-  doc.text("Documento gerado eletronicamente pelo OrdemFlow Tech.", 14, 267);
+  doc.text(`Documento gerado eletronicamente por ${companyData.nome}.`, 14, 267);
   doc.text("Validade deste documento condicionada ao registro da OS no sistema.", 14, 272);
   doc.text(`Codigo OS: ${os.id}`, 14, 277);
 

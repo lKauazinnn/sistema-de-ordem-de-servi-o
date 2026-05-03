@@ -26,7 +26,7 @@ const navLabels: Record<string, string> = {
 export function AppShell({ children }: PropsWithChildren) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { role, user } = useSession();
+  const { role, user, profile } = useSession();
   const [isRelogging, setIsRelogging] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
@@ -63,6 +63,8 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const themeIcon = theme === "light" ? <Sun size={15} /> : <Moon size={15} />;
   const themeLabel = theme === "light" ? "Tema claro" : "Tema escuro";
+  const appTitle = profile?.assistencia_nome?.trim() || "OrdemFlow";
+  const appSubtitle = profile?.nome?.trim() || role || "Painel";
 
   const links = [...baseLinks];
   if (role === "admin") {
@@ -92,8 +94,8 @@ export function AppShell({ children }: PropsWithChildren) {
           >
             <Logo size={34} />
             <div className="hidden sm:block">
-              <h1 className="text-base font-bold tracking-tight text-slate-50">OrdemFlow</h1>
-              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-300/60">Tech</p>
+              <h1 className="max-w-[230px] truncate text-base font-bold tracking-tight text-slate-50">{appTitle}</h1>
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-cyan-300/60">{appSubtitle}</p>
             </div>
           </Link>
 
@@ -121,9 +123,9 @@ export function AppShell({ children }: PropsWithChildren) {
           <div className="flex items-center gap-2.5">
             <div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 lg:flex">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/20 to-indigo-500/20 text-[11px] font-bold text-cyan-200 ring-1 ring-cyan-400/20">
-                {(user?.email?.[0] ?? "U").toUpperCase()}
+                {(profile?.nome?.[0] ?? user?.email?.[0] ?? "U").toUpperCase()}
               </div>
-              <span className="max-w-[150px] truncate text-xs text-slate-300">{user?.email ?? ""}</span>
+              <span className="max-w-[180px] truncate text-xs text-slate-300">{profile?.nome ?? user?.email ?? ""}</span>
             </div>
 
             <div className="hidden items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-medium text-emerald-200 xl:flex">
@@ -185,7 +187,7 @@ export function AppShell({ children }: PropsWithChildren) {
       <div className="mx-auto max-w-7xl px-4 pt-6 lg:px-6">
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <Sparkles size={12} className="text-cyan-400/60" />
-          <span>OrdemFlow</span>
+          <span className="max-w-[180px] truncate">{appTitle}</span>
           <ChevronRight size={12} />
           <span className="text-slate-300">{currentPageLabel}</span>
         </div>

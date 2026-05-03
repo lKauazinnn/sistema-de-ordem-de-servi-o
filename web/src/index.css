@@ -245,98 +245,222 @@ body {
   background: rgba(34, 211, 238, 0.04);
 }
 
-/* ── Login ── */
-.login-mesh {
+/* ══════════════════════════════════════════
+   Login page — todas animações via CSS
+   (rodam no compositor, zero jank)
+   ══════════════════════════════════════════ */
+
+/* Background */
+.lp-bg {
   background:
-    radial-gradient(circle at 8% 18%, rgba(34, 211, 238, 0.12), transparent 36%),
-    radial-gradient(circle at 88% 80%, rgba(245, 158, 11, 0.08), transparent 32%),
-    linear-gradient(145deg, #020617 0%, #020617 34%, #042f2e 100%);
+    radial-gradient(ellipse 90% 55% at 5% 5%,   rgba(34, 211, 238, 0.09), transparent),
+    radial-gradient(ellipse 70% 50% at 96% 92%,  rgba(99, 102, 241, 0.07), transparent),
+    radial-gradient(ellipse 60% 45% at 50% 110%, rgba(251, 191, 36, 0.05), transparent),
+    #03060f;
 }
 
-.login-shell {
-  background:
-    linear-gradient(135deg, rgba(2, 6, 23, 0.94) 0%, rgba(8, 15, 32, 0.8) 52%, rgba(15, 23, 42, 0.76) 100%);
+/* Dot-grid overlay */
+.lp-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-.login-form-glass {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 16px 42px rgba(2, 6, 23, 0.32);
+/* Gradient text */
+.lp-gradient-text {
+  background: linear-gradient(95deg, #22d3ee 0%, #818cf8 55%, #fb923c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.login-input-group {
-  border-color: rgba(148, 163, 184, 0.2);
-  transition: border-color 140ms ease, background-color 140ms ease;
-}
-
-.login-input-group:focus-within {
-  border-color: rgba(103, 232, 249, 0.45);
-  background-color: rgba(2, 6, 23, 0.7);
-}
-
-.login-aurora {
+/* ── Aurora orbs — transform + opacity only (compositor) ── */
+.lp-orb {
+  position: absolute;
   pointer-events: none;
+  border-radius: 999px;
+  filter: blur(70px);
+  will-change: transform;
+}
+
+.lp-orb-1 {
+  width: 28rem; height: 28rem;
+  top: -8rem; left: -8rem;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.22) 0%, transparent 68%);
+  animation: lp-drift-1 20s ease-in-out infinite;
+}
+.lp-orb-2 {
+  width: 36rem; height: 36rem;
+  top: 10%; right: -14rem;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.18) 0%, transparent 68%);
+  animation: lp-drift-2 24s ease-in-out infinite;
+}
+.lp-orb-3 {
+  width: 30rem; height: 30rem;
+  bottom: -10rem; left: 18%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.12) 0%, transparent 68%);
+  animation: lp-drift-3 22s ease-in-out infinite;
+}
+.lp-orb-4 {
+  width: 22rem; height: 22rem;
+  top: 38%; left: 33%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 68%);
+  animation: lp-drift-4 28s ease-in-out infinite;
+}
+
+/* transform only — stays on compositor thread */
+@keyframes lp-drift-1 {
+  0%   { transform: translate(0,    0)   scale(1); }
+  33%  { transform: translate(44px, 28px) scale(1.07); }
+  66%  { transform: translate(-18px, 48px) scale(0.95); }
+  100% { transform: translate(0,    0)   scale(1); }
+}
+@keyframes lp-drift-2 {
+  0%   { transform: translate(0,     0)    scale(1); }
+  40%  { transform: translate(-52px, 38px) scale(1.09); }
+  72%  { transform: translate(28px, -28px) scale(0.93); }
+  100% { transform: translate(0,     0)    scale(1); }
+}
+@keyframes lp-drift-3 {
+  0%   { transform: translate(0,    0)     scale(1); }
+  30%  { transform: translate(32px, -42px) scale(1.06); }
+  65%  { transform: translate(-38px, 18px) scale(0.96); }
+  100% { transform: translate(0,    0)     scale(1); }
+}
+@keyframes lp-drift-4 {
+  0%   { transform: translate(0,     0)    scale(1); }
+  50%  { transform: translate(-56px, -36px) scale(1.12); }
+  100% { transform: translate(0,     0)    scale(1); }
+}
+
+/* ── Particles — pure CSS, zero JS per frame ── */
+.lp-particle {
   position: absolute;
   border-radius: 999px;
-  filter: blur(42px);
-  opacity: 0.55;
+  background: rgba(34, 211, 238, 0.4);
+  will-change: transform, opacity;
+  animation: lp-float linear infinite;
 }
 
-.login-aurora-one {
-  left: -4rem;
-  top: -3rem;
-  height: 18rem;
-  width: 18rem;
-  background: rgba(34, 211, 238, 0.16);
+/* Distribute 18 particles with varying sizes, positions, durations */
+.lp-p-0  { width:2px; height:2px; left:4%;  top:12%; animation-duration:7s;  animation-delay:0s; }
+.lp-p-1  { width:3px; height:3px; left:14%; top:68%; animation-duration:9s;  animation-delay:-2s; }
+.lp-p-2  { width:2px; height:2px; left:23%; top:32%; animation-duration:6s;  animation-delay:-4s; }
+.lp-p-3  { width:4px; height:4px; left:35%; top:82%; animation-duration:11s; animation-delay:-1s; }
+.lp-p-4  { width:2px; height:2px; left:47%; top:18%; animation-duration:8s;  animation-delay:-5s; }
+.lp-p-5  { width:3px; height:3px; left:56%; top:55%; animation-duration:10s; animation-delay:-3s; }
+.lp-p-6  { width:2px; height:2px; left:64%; top:8%;  animation-duration:7s;  animation-delay:-6s; }
+.lp-p-7  { width:3px; height:3px; left:72%; top:74%; animation-duration:9s;  animation-delay:-1.5s; }
+.lp-p-8  { width:2px; height:2px; left:81%; top:40%; animation-duration:6s;  animation-delay:-4.5s; }
+.lp-p-9  { width:4px; height:4px; left:91%; top:22%; animation-duration:12s; animation-delay:-2.5s; }
+.lp-p-10 { width:2px; height:2px; left:8%;  top:88%; animation-duration:8s;  animation-delay:-7s; }
+.lp-p-11 { width:3px; height:3px; left:19%; top:48%; animation-duration:10s; animation-delay:-0.5s; }
+.lp-p-12 { width:2px; height:2px; left:29%; top:92%; animation-duration:7s;  animation-delay:-3.5s; }
+.lp-p-13 { width:2px; height:2px; left:42%; top:62%; animation-duration:9s;  animation-delay:-8s; }
+.lp-p-14 { width:3px; height:3px; left:53%; top:35%; animation-duration:11s; animation-delay:-2s; }
+.lp-p-15 { width:2px; height:2px; left:67%; top:90%; animation-duration:6s;  animation-delay:-5.5s; }
+.lp-p-16 { width:4px; height:4px; left:78%; top:58%; animation-duration:13s; animation-delay:-1s; }
+.lp-p-17 { width:2px; height:2px; left:88%; top:78%; animation-duration:8s;  animation-delay:-6.5s; }
+
+@keyframes lp-float {
+  0%   { transform: translateY(0);    opacity: 0.1; }
+  40%  { opacity: 0.55; }
+  50%  { transform: translateY(-28px); opacity: 0.55; }
+  100% { transform: translateY(0);    opacity: 0.1; }
 }
 
-.login-aurora-two {
-  right: -6rem;
-  top: 18%;
-  height: 22rem;
-  width: 22rem;
-  background: rgba(59, 130, 246, 0.15);
+/* ── Pulse dot (brand badge) ── */
+.lp-pulse-dot {
+  animation: lp-pulse 2.2s ease-out infinite;
+}
+@keyframes lp-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.5); }
+  60%       { box-shadow: 0 0 0 7px rgba(34, 211, 238, 0); }
 }
 
-.login-aurora-three {
-  bottom: -6rem;
-  left: 28%;
-  height: 20rem;
-  width: 20rem;
-  background: rgba(251, 191, 36, 0.12);
+/* ── Form card ── */
+.lp-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(150deg, rgba(12, 17, 36, 0.88) 0%, rgba(5, 8, 20, 0.92) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 24px 80px rgba(0, 0, 0, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
-.login-grid-overlay {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 28px 28px;
-  opacity: 0.12;
+/* Glowing top edge */
+.lp-card-topline {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(34, 211, 238, 0.4) 28%,
+    rgba(129, 140, 248, 0.45) 62%,
+    transparent 100%
+  );
 }
 
+/* Ambient inner glow */
+.lp-card-glow {
+  background: radial-gradient(ellipse 80% 45% at 50% 0%, rgba(34, 211, 238, 0.055), transparent 65%);
+}
+
+/* ── Submit button ── */
+.lp-btn {
+  background: linear-gradient(108deg, #0ea5e9 0%, #6366f1 52%, #8b5cf6 100%);
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+.lp-btn:not(:disabled):hover {
+  background: linear-gradient(108deg, #38bdf8 0%, #818cf8 52%, #a78bfa 100%);
+  box-shadow: 0 10px 40px rgba(34, 211, 238, 0.3);
+}
+
+/* Shimmer — translate only */
+.lp-shimmer {
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%);
+  transform: skewX(-12deg);
+  animation: lp-shimmer 3s ease-in-out infinite;
+}
+@keyframes lp-shimmer {
+  0%   { transform: skewX(-12deg) translateX(-120%); }
+  100% { transform: skewX(-12deg) translateX(220%); }
+}
+
+/* Arrow bounce */
+.lp-arrow {
+  animation: lp-arrow-bounce 1.8s ease-in-out infinite;
+}
+@keyframes lp-arrow-bounce {
+  0%, 100% { transform: translateX(0); }
+  50%       { transform: translateX(4px); }
+}
+
+/* Spinner */
+.lp-spinner {
+  animation: lp-spin 0.85s linear infinite;
+  display: inline-block;
+}
+@keyframes lp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ── */
 @media (max-width: 1024px) {
-  .login-aurora,
-  .login-radial,
-  .login-grid-overlay {
-    display: none;
-  }
-
-  .login-shell,
-  .login-form-glass {
+  .lp-orb { display: none; }
+  .lp-card {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
 }
 
-@keyframes login-float {
-  0%   { transform: translateY(0px); }
-  50%  { transform: translateY(-6px); }
-  100% { transform: translateY(0px); }
+@media (prefers-reduced-motion: reduce) {
+  .lp-orb,
+  .lp-particle,
+  .lp-pulse-dot,
+  .lp-shimmer,
+  .lp-arrow,
+  .lp-spinner { animation: none !important; }
 }
-
-.login-float { animation: login-float 4.8s ease-in-out infinite; }
-.login-float-delay-1 { animation: login-float 5.4s ease-in-out infinite; }
-.login-float-delay-2 { animation: login-float 6s ease-in-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   *,

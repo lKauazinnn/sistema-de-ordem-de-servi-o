@@ -6,7 +6,13 @@ export type UserFeatures = {
   streaming_panel?: boolean;
 };
 
-export interface UserProfile {
+export interface AssistenciaTecnicaProfile {
+  assistencia_nome: string | null;
+  assistencia_cnpj: string | null;
+  assistencia_telefone: string | null;
+}
+
+export interface UserProfile extends AssistenciaTecnicaProfile {
   id: string;
   nome: string;
   email: string | null;

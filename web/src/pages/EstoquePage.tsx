@@ -17,6 +17,14 @@ type ProdutoFormState = {
   estoqueInicial: string;
 };
 
+type SaidaFormState = {
+  produtoId: string;
+  produtoNome: string;
+  quantidade: string;
+  justificativa: string;
+  numeroNotaFiscal: string;
+};
+
 const initialProdutoForm: ProdutoFormState = {
   nome: "",
   sku: "",
@@ -28,14 +36,24 @@ const initialProdutoForm: ProdutoFormState = {
   estoqueInicial: "0"
 };
 
+const initialSaidaForm: SaidaFormState = {
+  produtoId: "",
+  produtoNome: "",
+  quantidade: "1",
+  justificativa: "Saida manual",
+  numeroNotaFiscal: ""
+};
+
 export function EstoquePage() {
   const queryClient = useQueryClient();
   const { user } = useSession();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showSaidaModal, setShowSaidaModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [produtoForm, setProdutoForm] = useState<ProdutoFormState>(initialProdutoForm);
+  const [saidaForm, setSaidaForm] = useState<SaidaFormState>(initialSaidaForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const isOwner = user?.email === "lkaua.lopes01@gmail.com" || user?.app_metadata?.role === "admin";
   useRealtimeChannel(["produtos"], "produtos");
@@ -75,6 +93,56 @@ export function EstoquePage() {
       setProdutoForm(initialProdutoForm);
     }
     setShowModal(true);
+  }
+
+  function abrirModalSaida(produto: Produto) {
+    setFeedback(null);
+    setSaidaForm({
+      produtoId: produto.id,
+      produtoNome: produto.nome,
+      quantidade: "1",
+      justificativa: "Saida manual",
+      numeroNotaFiscal: ""
+    });
+    setShowSaidaModal(true);
+  }
+
+  async function handleRegistrarSaida() {
+    setFeedback(null);
+    const quantidade = Number(saidaForm.quantidade.replace(",", "."));
+
+    if (!saidaForm.produtoId) {
+      setFeedback("Selecione um produto para a saida.");
+      return;
+    }
+
+    if (Number.isNaN(quantidade) || quantidade <= 0) {
+      setFeedback("Informe uma quantidade valida para a saida.");
+      return;
+    }
+
+    if (!saidaForm.justificativa.trim()) {
+      setFeedback("Informe a justificativa da saida.");
+      return;
+    }
+
+    if (!saidaForm.numeroNotaFiscal.trim()) {
+      setFeedback("Informe o numero da nota fiscal da saida.");
+      return;
+    }
+
+    try {
+      await baixaMutation.mutateAsync({
+        produto_id: saidaForm.produtoId,
+        quantidade,
+        justificativa: saidaForm.justificativa.trim(),
+        numero_nf_saida: saidaForm.numeroNotaFiscal.trim()
+      });
+      setShowSaidaModal(false);
+      setSaidaForm(initialSaidaForm);
+    } catch {
+      // feedback tratado pela mutation
+    }
   }
 
   async function handleSave() {
@@ -191,7 +259,7 @@ export function EstoquePage() {
                       <td>
                         <div className="flex items-center justify-end gap-1.5">
                           <button className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20" onClick={() => entradaMutation.mutate({ produto_id: produto.id, quantidade: 1, justificativa: "Reposição manual" })} disabled={entradaMutation.isPending} title="Entrada +1"><ArrowUpCircle size={14} /></button>
-                          <button className="btn-ghost !px-2 !py-1.5 !text-amber-300 !border-amber-500/20" onClick={() => baixaMutation.mutate({ produto_id: produto.id, quantidade: 1, justificativa: "Saída manual" })} disabled={baixaMutation.isPending} title="Saída -1"><ArrowDownCircle size={14} /></button>
+                          <button className="btn-ghost !px-2 !py-1.5 !text-amber-300 !border-amber-500/20" onClick={() => abrirModalSaida(produto)} disabled={baixaMutation.isPending} title="Registrar saída"><ArrowDownCircle size={14} /></button>
                           <button className="btn-ghost !px-2 !py-1.5" onClick={() => abrirModal(produto)} title="Editar"><Edit3 size={13} /></button>
                           {isOwner && (
                             confirmDeleteId === produto.id ? (
@@ -217,7 +285,7 @@ export function EstoquePage() {
       {/* Product Modal (Create / Edit) */}
       {showModal && (
         <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="modal-content card-static w-full max-w-3xl border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
+          <div className="modal-content card-static max-h-[85vh] w-full max-w-3xl overflow-y-auto border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400/70">{editingId ? "Editar" : "Novo"} Produto</p>
@@ -252,6 +320,56 @@ export function EstoquePage() {
               <button className="btn-ghost" onClick={() => { setShowModal(false); setEditingId(null); }}>Cancelar</button>
               <button className="btn-primary" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? "Salvando..." : editingId ? "Atualizar" : "Criar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showSaidaModal && (
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="modal-content card-static max-h-[85vh] w-full max-w-xl overflow-y-auto border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/70">Saida de estoque</p>
+                <h3 className="mt-1 font-display text-xl font-bold text-white">{saidaForm.produtoNome || "Produto"}</h3>
+              </div>
+              <button className="btn-ghost !px-3 !py-1.5" onClick={() => setShowSaidaModal(false)}><X size={16} /></button>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Quantidade</span>
+                <input
+                  value={saidaForm.quantidade}
+                  onChange={(e) => setSaidaForm((current) => ({ ...current, quantidade: e.target.value }))}
+                  className="input-dark"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Nota fiscal de saida</span>
+                <input
+                  value={saidaForm.numeroNotaFiscal}
+                  onChange={(e) => setSaidaForm((current) => ({ ...current, numeroNotaFiscal: e.target.value }))}
+                  className="input-dark"
+                  placeholder="NF-000123"
+                />
+              </label>
+              <label className="block text-sm sm:col-span-2">
+                <span className="mb-1.5 block font-medium text-slate-300">Justificativa</span>
+                <textarea
+                  value={saidaForm.justificativa}
+                  onChange={(e) => setSaidaForm((current) => ({ ...current, justificativa: e.target.value }))}
+                  rows={3}
+                  className="input-dark"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button className="btn-ghost" onClick={() => setShowSaidaModal(false)}>Cancelar</button>
+              <button className="btn-primary !bg-gradient-to-r !from-amber-500 !to-orange-500" onClick={handleRegistrarSaida} disabled={baixaMutation.isPending}>
+                {baixaMutation.isPending ? "Registrando..." : "Registrar saida"}
               </button>
             </div>
           </div>

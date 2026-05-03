@@ -11,7 +11,10 @@ const schema = z.object({
   user_features: z.object({
     streaming_panel: z.boolean().optional()
   }).optional(),
-  streaming_url: z.string().url().optional().or(z.literal(""))
+  streaming_url: z.string().url().optional().or(z.literal("")),
+  assistencia_nome: z.string().min(2).max(120).optional().or(z.literal("")),
+  assistencia_cnpj: z.string().max(32).optional().or(z.literal("")),
+  assistencia_telefone: z.string().max(32).optional().or(z.literal(""))
 });
 
 export default async function handler(req: any, res: any) {
@@ -29,6 +32,9 @@ export default async function handler(req: any, res: any) {
     const nome = input.nome ? sanitizeString(input.nome) : "Usuario";
     const normalizedEmail = sanitizeString(input.email).toLowerCase();
     const streamingUrl = input.streaming_url ? input.streaming_url.trim() : null;
+    const assistenciaNome = input.assistencia_nome ? sanitizeString(input.assistencia_nome) : null;
+    const assistenciaCnpj = input.assistencia_cnpj ? sanitizeString(input.assistencia_cnpj) : null;
+    const assistenciaTelefone = input.assistencia_telefone ? sanitizeString(input.assistencia_telefone) : null;
     const features = {
       streaming_panel: Boolean(input.user_features?.streaming_panel)
     };
@@ -39,7 +45,10 @@ export default async function handler(req: any, res: any) {
       email_confirm: true,
       user_metadata: {
         nome,
-        streaming_url: features.streaming_panel ? streamingUrl : null
+        streaming_url: features.streaming_panel ? streamingUrl : null,
+        assistencia_nome: assistenciaNome,
+        assistencia_cnpj: assistenciaCnpj,
+        assistencia_telefone: assistenciaTelefone
       },
       app_metadata: {
         role: input.role,
@@ -57,7 +66,10 @@ export default async function handler(req: any, res: any) {
       email: normalizedEmail,
       role: input.role,
       user_features: features,
-      streaming_url: features.streaming_panel ? streamingUrl : null
+      streaming_url: features.streaming_panel ? streamingUrl : null,
+      assistencia_nome: assistenciaNome,
+      assistencia_cnpj: assistenciaCnpj,
+      assistencia_telefone: assistenciaTelefone
     });
 
     if (profileError) {
@@ -72,6 +84,9 @@ export default async function handler(req: any, res: any) {
         role: input.role,
         user_features: features,
         streaming_url: features.streaming_panel ? streamingUrl : null,
+        assistencia_nome: assistenciaNome,
+        assistencia_cnpj: assistenciaCnpj,
+        assistencia_telefone: assistenciaTelefone,
         created_at: data.user.created_at
       }
     });

@@ -18,4 +18,20 @@ describe("osSchema", () => {
 
     expect(parsed.marca).toBe("Dell");
   });
+
+  it("aceita OS sem serial ou imei", () => {
+    const parsed = osSchema.parse({
+      cliente_id: "bf319b6f-3139-4ef2-a77f-2d8cc3d2a745",
+      tecnico_id: "9fbc66f1-53e2-4155-bc9e-92315b718e33",
+      tipo_equipamento: "celular",
+      marca: "Samsung",
+      modelo: "Galaxy A15",
+      serial_imei: "",
+      problema_relatado: "Tela quebrada",
+      prioridade: "media",
+      prazo_estimado: new Date().toISOString()
+    });
+
+    expect(parsed.serial_imei).toBe("");
+  });
 });
