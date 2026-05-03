@@ -102,5 +102,5 @@ export async function listSaidasEstoque() {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as SaidaEstoqueRegistro[];
+  return (data ?? []) as unknown as SaidaEstoqueRegistro[];
 }
