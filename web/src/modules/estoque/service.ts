@@ -1,5 +1,5 @@
 import { supabase } from "../../lib/supabase";
-import type { Produto } from "../../types";
+import type { Produto, SaidaEstoqueRegistro } from "../../types";
 
 type NovoProdutoInput = {
   nome: string;
@@ -89,4 +89,18 @@ export async function deleteProduto(produtoId: string) {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+export async function listSaidasEstoque() {
+  const { data, error } = await supabase
+    .from("movimentacoes_estoque")
+    .select("id, numero_saida, produto_id, quantidade, justificativa, numero_nf_saida, created_by, created_at, produtos(nome, sku)")
+    .eq("tipo", "saida")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return (data ?? []) as SaidaEstoqueRegistro[];
 }

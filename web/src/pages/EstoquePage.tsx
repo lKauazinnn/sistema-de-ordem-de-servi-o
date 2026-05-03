@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownCircle, ArrowUpCircle, Edit3, Package, Plus, Search, Trash2, X } from "lucide-react";
-import { createProduto, deleteProduto, listProdutos, registrarEntradaManual, registrarSaidaManual, updateProduto } from "../modules/estoque/service";
+import { ArrowDownCircle, ArrowUpCircle, ClipboardList, Edit3, Package, Plus, Search, Trash2, X } from "lucide-react";
+import { createProduto, deleteProduto, listProdutos, listSaidasEstoque, registrarEntradaManual, registrarSaidaManual, updateProduto } from "../modules/estoque/service";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
 import type { Produto } from "../types";
@@ -49,6 +49,7 @@ export function EstoquePage() {
   const { user } = useSession();
   const [feedback, setFeedback] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [activeTab, setActiveTab] = useState<"produtos" | "saidas">("produtos");
   const [showModal, setShowModal] = useState(false);
   const [showSaidaModal, setShowSaidaModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export function EstoquePage() {
   useRealtimeChannel(["produtos"], "produtos");
 
   const { data, isLoading } = useQuery({ queryKey: ["produtos"], queryFn: listProdutos });
+  const { data: saidas = [], isLoading: loadingSaidas } = useQuery({ queryKey: ["saidas-estoque"], queryFn: listSaidasEstoque });
 
   const filteredData = (data ?? []).filter((p) => {
     if (!search) return true;
@@ -208,79 +210,153 @@ export function EstoquePage() {
         </div>
       )}
 
-      <div className="card-static flex items-center gap-3 px-4 py-3">
-        <Search size={16} className="text-slate-500" />
-        <input placeholder="Buscar por nome, SKU ou categoria..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500" />
-        {search && <button onClick={() => setSearch("")} className="text-slate-500 hover:text-slate-300"><X size={14} /></button>}
+      <div className="flex gap-1 rounded-xl border border-slate-800 bg-slate-900/50 p-1">
+        <button
+          onClick={() => setActiveTab("produtos")}
+          className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTab === "produtos" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}
+        >
+          <Package size={14} />
+          Produtos
+        </button>
+        <button
+          onClick={() => setActiveTab("saidas")}
+          className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${activeTab === "saidas" ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}
+        >
+          <ClipboardList size={14} />
+          Registros de Saída
+          {saidas.length > 0 && (
+            <span className="ml-1 rounded-full bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">{saidas.length}</span>
+          )}
+        </button>
       </div>
 
-      <div className="card-static overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="table-pro min-w-full">
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>SKU</th>
-                <th>Categoria</th>
-                <th>Saldo</th>
-                <th>Mín.</th>
-                <th>Custo</th>
-                <th>Venda</th>
-                <th className="text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={8} className="text-center text-slate-400">Carregando...</td></tr>
-              ) : filteredData.length === 0 ? (
-                <tr><td colSpan={8} className="text-center text-slate-500">Nenhum produto encontrado.</td></tr>
-              ) : (
-                filteredData.map((produto) => {
-                  const lowStock = produto.estoque_atual <= produto.estoque_minimo;
-                  return (
-                    <tr key={produto.id}>
+      {activeTab === "produtos" && (
+        <>
+          <div className="card-static flex items-center gap-3 px-4 py-3">
+            <Search size={16} className="text-slate-500" />
+            <input placeholder="Buscar por nome, SKU ou categoria..." value={search} onChange={(e) => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500" />
+            {search && <button onClick={() => setSearch("")} className="text-slate-500 hover:text-slate-300"><X size={14} /></button>}
+          </div>
+
+          <div className="card-static overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="table-pro min-w-full">
+                <thead>
+                  <tr>
+                    <th>Produto</th>
+                    <th>SKU</th>
+                    <th>Categoria</th>
+                    <th>Saldo</th>
+                    <th>Mín.</th>
+                    <th>Custo</th>
+                    <th>Venda</th>
+                    <th className="text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {isLoading ? (
+                    <tr><td colSpan={8} className="text-center text-slate-400">Carregando...</td></tr>
+                  ) : filteredData.length === 0 ? (
+                    <tr><td colSpan={8} className="text-center text-slate-500">Nenhum produto encontrado.</td></tr>
+                  ) : (
+                    filteredData.map((produto) => {
+                      const lowStock = produto.estoque_atual <= produto.estoque_minimo;
+                      return (
+                        <tr key={produto.id}>
+                          <td>
+                            <div className="flex items-center gap-2">
+                              <Package size={14} className="text-slate-500" />
+                              <span className="font-medium text-cyan-200">{produto.nome}</span>
+                            </div>
+                          </td>
+                          <td className="font-mono text-xs text-slate-400">{produto.sku}</td>
+                          <td><span className="badge bg-slate-800/60 text-slate-300">{produto.categoria}</span></td>
+                          <td>
+                            <span className={`font-semibold ${lowStock ? "text-rose-300" : "text-emerald-300"}`}>
+                              {produto.estoque_atual}
+                            </span>
+                            {lowStock && <span className="ml-1.5 text-[10px] text-rose-400">BAIXO</span>}
+                          </td>
+                          <td className="text-slate-400">{produto.estoque_minimo}</td>
+                          <td className="text-slate-400">{moneyFormatter.format(produto.preco_custo)}</td>
+                          <td className="font-medium text-slate-200">{moneyFormatter.format(produto.preco_venda)}</td>
+                          <td>
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20" onClick={() => entradaMutation.mutate({ produto_id: produto.id, quantidade: 1, justificativa: "Reposição manual" })} disabled={entradaMutation.isPending} title="Entrada +1"><ArrowUpCircle size={14} /></button>
+                              <button className="btn-ghost !px-2 !py-1.5 !text-amber-300 !border-amber-500/20" onClick={() => abrirModalSaida(produto)} disabled={baixaMutation.isPending} title="Registrar saída"><ArrowDownCircle size={14} /></button>
+                              <button className="btn-ghost !px-2 !py-1.5" onClick={() => abrirModal(produto)} title="Editar"><Edit3 size={13} /></button>
+                              {isOwner && (
+                                confirmDeleteId === produto.id ? (
+                                  <span className="flex items-center gap-1">
+                                    <button className="btn-danger" onClick={() => deleteMutation.mutate(produto.id)} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "..." : "Sim"}</button>
+                                    <button className="btn-ghost !px-2 !py-1" onClick={() => setConfirmDeleteId(null)}>Não</button>
+                                  </span>
+                                ) : (
+                                  <button className="btn-ghost !px-2 !py-1.5 !text-rose-400 !border-rose-500/20" onClick={() => { setConfirmDeleteId(produto.id); setFeedback(null); }} title="Excluir"><Trash2 size={13} /></button>
+                                )
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === "saidas" && (
+        <div className="card-static overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="table-pro min-w-[700px]">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Produto</th>
+                  <th>SKU</th>
+                  <th>Qtd.</th>
+                  <th>NF Saída</th>
+                  <th>Justificativa</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingSaidas ? (
+                  <tr><td colSpan={7} className="text-center text-slate-400">Carregando registros...</td></tr>
+                ) : saidas.length === 0 ? (
+                  <tr><td colSpan={7} className="text-center text-slate-500">Nenhuma saída registrada.</td></tr>
+                ) : (
+                  saidas.map((saida) => (
+                    <tr key={saida.id}>
+                      <td>
+                        <span className="font-mono text-xs font-semibold text-amber-300">
+                          {saida.numero_saida ? `#${String(saida.numero_saida).padStart(4, "0")}` : "---"}
+                        </span>
+                      </td>
                       <td>
                         <div className="flex items-center gap-2">
-                          <Package size={14} className="text-slate-500" />
-                          <span className="font-medium text-cyan-200">{produto.nome}</span>
+                          <ArrowDownCircle size={13} className="shrink-0 text-amber-400" />
+                          <span className="font-medium text-slate-100">{saida.produtos?.nome ?? "—"}</span>
                         </div>
                       </td>
-                      <td className="font-mono text-xs text-slate-400">{produto.sku}</td>
-                      <td><span className="badge bg-slate-800/60 text-slate-300">{produto.categoria}</span></td>
-                      <td>
-                        <span className={`font-semibold ${lowStock ? "text-rose-300" : "text-emerald-300"}`}>
-                          {produto.estoque_atual}
-                        </span>
-                        {lowStock && <span className="ml-1.5 text-[10px] text-rose-400">BAIXO</span>}
-                      </td>
-                      <td className="text-slate-400">{produto.estoque_minimo}</td>
-                      <td className="text-slate-400">{moneyFormatter.format(produto.preco_custo)}</td>
-                      <td className="font-medium text-slate-200">{moneyFormatter.format(produto.preco_venda)}</td>
-                      <td>
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20" onClick={() => entradaMutation.mutate({ produto_id: produto.id, quantidade: 1, justificativa: "Reposição manual" })} disabled={entradaMutation.isPending} title="Entrada +1"><ArrowUpCircle size={14} /></button>
-                          <button className="btn-ghost !px-2 !py-1.5 !text-amber-300 !border-amber-500/20" onClick={() => abrirModalSaida(produto)} disabled={baixaMutation.isPending} title="Registrar saída"><ArrowDownCircle size={14} /></button>
-                          <button className="btn-ghost !px-2 !py-1.5" onClick={() => abrirModal(produto)} title="Editar"><Edit3 size={13} /></button>
-                          {isOwner && (
-                            confirmDeleteId === produto.id ? (
-                              <span className="flex items-center gap-1">
-                                <button className="btn-danger" onClick={() => deleteMutation.mutate(produto.id)} disabled={deleteMutation.isPending}>{deleteMutation.isPending ? "..." : "Sim"}</button>
-                                <button className="btn-ghost !px-2 !py-1" onClick={() => setConfirmDeleteId(null)}>Não</button>
-                              </span>
-                            ) : (
-                              <button className="btn-ghost !px-2 !py-1.5 !text-rose-400 !border-rose-500/20" onClick={() => { setConfirmDeleteId(produto.id); setFeedback(null); }} title="Excluir"><Trash2 size={13} /></button>
-                            )
-                          )}
-                        </div>
+                      <td className="font-mono text-xs text-slate-400">{saida.produtos?.sku ?? "—"}</td>
+                      <td className="font-semibold text-rose-300">{saida.quantidade}</td>
+                      <td className="font-mono text-xs text-slate-300">{saida.numero_nf_saida ?? "—"}</td>
+                      <td className="max-w-[200px] truncate text-sm text-slate-400" title={saida.justificativa ?? ""}>{saida.justificativa ?? "—"}</td>
+                      <td className="text-xs text-slate-400">
+                        {new Date(saida.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </td>
                     </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Product Modal (Create / Edit) */}
       {showModal && (

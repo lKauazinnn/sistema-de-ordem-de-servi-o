@@ -117,3 +117,21 @@ export async function deleteManagedUser(userId: string) {
     throw new Error(payload.error ?? "Falha ao excluir usuario.");
   }
 }
+
+export async function updateOwnAssistencia(input: {
+  assistencia_nome: string;
+  assistencia_cnpj: string;
+  assistencia_telefone: string;
+}) {
+  const { error } = await supabase.rpc("update_own_assistencia", {
+    p_nome: input.assistencia_nome,
+    p_cnpj: input.assistencia_cnpj,
+    p_telefone: input.assistencia_telefone
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await supabase.auth.refreshSession();
+}

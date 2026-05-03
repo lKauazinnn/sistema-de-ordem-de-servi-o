@@ -111,3 +111,15 @@ export interface NotaServicoResumo {
   forma_pagamento: string | null;
   created_at: string;
 }
+
+export interface SaidaEstoqueRegistro {
+  id: string;
+  numero_saida: number | null;
+  produto_id: string;
+  quantidade: number;
+  justificativa: string | null;
+  numero_nf_saida: string | null;
+  created_by: string | null;
+  created_at: string;
+  produtos: { nome: string; sku: string } | null;
+}

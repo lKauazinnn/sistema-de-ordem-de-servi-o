@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AlertTriangle, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
+import { AlertTriangle, Building2, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Save, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
+import { updateOwnAssistencia } from "../modules/users/service";
 import { useSession } from "../hooks/useSession";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
 import type { AlertaEstoque } from "../hooks/useEstoqueAlerta";
@@ -30,6 +31,10 @@ export function AppShell({ children }: PropsWithChildren) {
   const [isRelogging, setIsRelogging] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ assistencia_nome: "", assistencia_cnpj: "", assistencia_telefone: "" });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
   const timerRefs = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   useEstoqueAlerta((alerta) => {
@@ -78,6 +83,30 @@ export function AppShell({ children }: PropsWithChildren) {
     } finally {
       setIsRelogging(false);
       navigate("/login", { replace: true });
+    }
+  }
+
+  function abrirProfileModal() {
+    setProfileForm({
+      assistencia_nome: profile?.assistencia_nome ?? "",
+      assistencia_cnpj: profile?.assistencia_cnpj ?? "",
+      assistencia_telefone: profile?.assistencia_telefone ?? ""
+    });
+    setProfileFeedback(null);
+    setProfileModalOpen(true);
+  }
+
+  async function handleSaveProfile() {
+    setProfileSaving(true);
+    setProfileFeedback(null);
+    try {
+      await updateOwnAssistencia(profileForm);
+      setProfileFeedback("Dados salvos com sucesso.");
+      setTimeout(() => setProfileModalOpen(false), 1200);
+    } catch (err) {
+      setProfileFeedback(err instanceof Error ? err.message : "Erro ao salvar.");
+    } finally {
+      setProfileSaving(false);
     }
   }
 
@@ -132,6 +161,14 @@ export function AppShell({ children }: PropsWithChildren) {
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
               Online
             </div>
+
+            <button
+              onClick={abrirProfileModal}
+              className="flex items-center justify-center rounded-xl bg-slate-800/80 p-2 text-slate-300 ring-1 ring-slate-700/70 transition-colors hover:bg-slate-700/80 hover:text-white"
+              title="Minha assistência técnica"
+            >
+              <Building2 size={15} />
+            </button>
 
             <button
               onClick={cycleTheme}
@@ -196,6 +233,62 @@ export function AppShell({ children }: PropsWithChildren) {
       <main className="mx-auto max-w-7xl px-4 pb-12 pt-4 lg:px-6">{children}</main>
 
       <SupportChat />
+
+      {profileModalOpen && (
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="modal-content card-static w-full max-w-md border-slate-700 bg-slate-950/98 p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-400/70">Meu perfil</p>
+                <h3 className="mt-1 font-display text-xl font-bold text-white">Dados da assistência técnica</h3>
+              </div>
+              <button className="btn-ghost !px-3 !py-1.5" onClick={() => setProfileModalOpen(false)}><X size={16} /></button>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Nome da assistência</span>
+                <input
+                  value={profileForm.assistencia_nome}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_nome: e.target.value }))}
+                  className="input-dark"
+                  placeholder="Minha Assistência"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">CNPJ</span>
+                <input
+                  value={profileForm.assistencia_cnpj}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_cnpj: e.target.value }))}
+                  className="input-dark"
+                  placeholder="00.000.000/0000-00"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Telefone</span>
+                <input
+                  value={profileForm.assistencia_telefone}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_telefone: e.target.value }))}
+                  className="input-dark"
+                  placeholder="(00) 00000-0000"
+                />
+              </label>
+            </div>
+
+            {profileFeedback && (
+              <p className="mt-3 text-sm text-cyan-300">{profileFeedback}</p>
+            )}
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button className="btn-ghost" onClick={() => setProfileModalOpen(false)}>Cancelar</button>
+              <button className="btn-primary" onClick={handleSaveProfile} disabled={profileSaving}>
+                <Save size={14} />
+                {profileSaving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alertas de estoque baixo */}
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2" aria-live="polite">
