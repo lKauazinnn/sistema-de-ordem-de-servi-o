@@ -73,30 +73,8 @@ git diff --cached --quiet
 if not errorlevel 1 (
   echo Nao ha alteracoes para commitar.
 ) else (
-  set "GIT_USER_NAME="
-  set "GIT_USER_EMAIL="
-  for /f "delims=" %%i in ('git config user.name') do set "GIT_USER_NAME=%%i"
-  for /f "delims=" %%i in ('git config user.email') do set "GIT_USER_EMAIL=%%i"
-
-  if "%GIT_USER_NAME%"=="" (
-    echo.
-    echo [ERRO] Identidade Git nao configurada ^(user.name^).
-    echo Configure uma vez e execute novamente:
-    echo   git config --global user.name "Seu Nome"
-    echo   git config --global user.email "seu-email@exemplo.com"
-    pause
-    exit /b 1
-  )
-
-  if "%GIT_USER_EMAIL%"=="" (
-    echo.
-    echo [ERRO] Identidade Git nao configurada ^(user.email^).
-    echo Configure uma vez e execute novamente:
-    echo   git config --global user.name "Seu Nome"
-    echo   git config --global user.email "seu-email@exemplo.com"
-    pause
-    exit /b 1
-  )
+  git config --global user.name "lKauazinnn" >nul 2>&1
+  git config --global user.email "lkaua.lopes01@gmail.com" >nul 2>&1
 
   echo Criando commit: %COMMIT_MSG%
   git commit -m "%COMMIT_MSG%"
