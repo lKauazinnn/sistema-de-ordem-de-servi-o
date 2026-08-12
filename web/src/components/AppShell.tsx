@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AlertTriangle, Building2, ChevronRight, ClipboardList, LayoutDashboard, LogOut, Menu, Moon, Package, Save, Sparkles, Sun, Tv, UserCog, Users, Wallet, X } from "lucide-react";
 import { signOut } from "../modules/auth/service";
 import { updateOwnAssistencia } from "../modules/users/service";
+import { supabase } from "../lib/supabase";
 import { useSession } from "../hooks/useSession";
 import { useEstoqueAlerta } from "../hooks/useEstoqueAlerta";
 import type { AlertaEstoque } from "../hooks/useEstoqueAlerta";
@@ -42,6 +43,7 @@ export function AppShell({ children }: PropsWithChildren) {
   });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
   const timerRefs = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   useEstoqueAlerta((alerta) => {
@@ -104,6 +106,46 @@ export function AppShell({ children }: PropsWithChildren) {
     });
     setProfileFeedback(null);
     setProfileModalOpen(true);
+  }
+
+  async function handleLogoUpload(file: File) {
+    if (!user) {
+      return;
+    }
+
+    if (!["image/png", "image/jpeg"].includes(file.type)) {
+      setProfileFeedback("Envie um arquivo PNG ou JPEG.");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileFeedback("A imagem deve ter no maximo 2MB.");
+      return;
+    }
+
+    setLogoUploading(true);
+    setProfileFeedback(null);
+    try {
+      const ext = file.type === "image/png" ? "png" : "jpg";
+      const path = `${user.id}/logo.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("logos")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      const { data } = supabase.storage.from("logos").getPublicUrl(path);
+      const publicUrl = `${data.publicUrl}?v=${Date.now()}`;
+      setProfileForm((f) => ({ ...f, assistencia_logo_url: publicUrl }));
+      setProfileFeedback("Logo enviada. Clique em Salvar para confirmar.");
+    } catch (err) {
+      setProfileFeedback(err instanceof Error ? err.message : "Falha ao enviar a logo.");
+    } finally {
+      setLogoUploading(false);
+    }
   }
 
   async function handleSaveProfile() {
@@ -302,14 +344,33 @@ export function AppShell({ children }: PropsWithChildren) {
                 />
               </label>
               <label className="block text-sm">
-                <span className="mb-1.5 block font-medium text-slate-300">URL do logo</span>
-                <input
-                  value={profileForm.assistencia_logo_url}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_logo_url: e.target.value }))}
-                  className="input-dark"
-                  placeholder="https://.../logo.png"
-                />
-                <span className="mt-1 block text-xs text-slate-500">Usada no cabeçalho do PDF da OS. Envie a imagem em algum serviço de hospedagem e cole o link aqui.</span>
+                <span className="mb-1.5 block font-medium text-slate-300">Logo da empresa</span>
+                <div className="flex items-center gap-3">
+                  {profileForm.assistencia_logo_url && (
+                    <img
+                      src={profileForm.assistencia_logo_url}
+                      alt="Logo"
+                      className="h-12 w-12 rounded-lg border border-slate-700 object-contain bg-white"
+                    />
+                  )}
+                  <label className="btn-ghost cursor-pointer !py-2">
+                    {logoUploading ? "Enviando..." : "Escolher imagem (PNG/JPEG)"}
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      className="hidden"
+                      disabled={logoUploading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleLogoUpload(file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                </div>
+                <span className="mt-1.5 block text-xs text-slate-500">Aparece no cabeçalho do PDF da OS. Máximo 2MB.</span>
               </label>
             </div>
 
