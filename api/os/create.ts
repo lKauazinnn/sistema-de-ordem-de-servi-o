@@ -2,6 +2,7 @@ import { z } from "zod";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 import { parseBody, sanitizeString } from "../_lib/security";
 import { validateSerialOrImei } from "../_lib/imei";
+import { requireRole } from "../_lib/authz";
 
 const schema = z.object({
   cliente_id: z.string().uuid(),
@@ -21,8 +22,17 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Metodo nao permitido" });
   }
 
+  const auth = await requireRole(req, res, ["admin", "gerente", "atendente", "tecnico"]);
+  if (!auth) {
+    return;
+  }
+
   try {
     const input = parseBody(schema, req.body);
+
+    if (auth.role === "tecnico" && input.tecnico_id !== auth.userId) {
+      return res.status(403).json({ error: "Tecnicos so podem abrir OS atribuidas a si mesmos." });
+    }
 
     const tipoEquipamento = sanitizeString(input.tipo_equipamento);
     const serialImei = sanitizeString(input.serial_imei);
@@ -42,7 +52,8 @@ export default async function handler(req: any, res: any) {
       modelo: sanitizeString(input.modelo),
       serial_imei: imeiValidation.normalized,
       problema_relatado: sanitizeString(input.problema_relatado),
-      observacoes_internas: input.observacoes_internas ? sanitizeString(input.observacoes_internas) : null
+      observacoes_internas: input.observacoes_internas ? sanitizeString(input.observacoes_internas) : null,
+      created_by: auth.userId
     };
 
     const { data, error } = await supabaseAdmin.from("ordens_servico").insert(payload).select("*").single();

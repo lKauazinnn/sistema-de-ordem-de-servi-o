@@ -32,7 +32,14 @@ export function AppShell({ children }: PropsWithChildren) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState({ assistencia_nome: "", assistencia_cnpj: "", assistencia_telefone: "" });
+  const [profileForm, setProfileForm] = useState({
+    assistencia_nome: "",
+    assistencia_cnpj: "",
+    assistencia_telefone: "",
+    assistencia_endereco: "",
+    assistencia_instagram: "",
+    assistencia_logo_url: ""
+  });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null);
   const timerRefs = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
@@ -90,7 +97,10 @@ export function AppShell({ children }: PropsWithChildren) {
     setProfileForm({
       assistencia_nome: profile?.assistencia_nome ?? "",
       assistencia_cnpj: profile?.assistencia_cnpj ?? "",
-      assistencia_telefone: profile?.assistencia_telefone ?? ""
+      assistencia_telefone: profile?.assistencia_telefone ?? "",
+      assistencia_endereco: profile?.assistencia_endereco ?? "",
+      assistencia_instagram: profile?.assistencia_instagram ?? "",
+      assistencia_logo_url: profile?.assistencia_logo_url ?? ""
     });
     setProfileFeedback(null);
     setProfileModalOpen(true);
@@ -272,6 +282,34 @@ export function AppShell({ children }: PropsWithChildren) {
                   className="input-dark"
                   placeholder="(00) 00000-0000"
                 />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Endereço</span>
+                <input
+                  value={profileForm.assistencia_endereco}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_endereco: e.target.value }))}
+                  className="input-dark"
+                  placeholder="Rua, número, bairro - Cidade/UF"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Instagram</span>
+                <input
+                  value={profileForm.assistencia_instagram}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_instagram: e.target.value }))}
+                  className="input-dark"
+                  placeholder="@minhaassistencia"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">URL do logo</span>
+                <input
+                  value={profileForm.assistencia_logo_url}
+                  onChange={(e) => setProfileForm((f) => ({ ...f, assistencia_logo_url: e.target.value }))}
+                  className="input-dark"
+                  placeholder="https://.../logo.png"
+                />
+                <span className="mt-1 block text-xs text-slate-500">Usada no cabeçalho do PDF da OS. Envie a imagem em algum serviço de hospedagem e cole o link aqui.</span>
               </label>
             </div>
 

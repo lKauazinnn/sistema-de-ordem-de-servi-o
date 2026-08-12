@@ -29,7 +29,7 @@ export default async function handler(req: any, res: any) {
 
   const { data: profiles, error: profilesError } = await supabaseAdmin
     .from("profiles")
-    .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,created_at")
+    .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,assistencia_endereco,assistencia_instagram,assistencia_logo_url,created_at")
     .in("id", userIds);
 
   // Fallback para bancos sem colunas novas (ex: user_features/streaming_url).
@@ -47,7 +47,10 @@ export default async function handler(req: any, res: any) {
         streaming_url: null,
         assistencia_nome: null,
         assistencia_cnpj: null,
-        assistencia_telefone: null
+        assistencia_telefone: null,
+        assistencia_endereco: null,
+        assistencia_instagram: null,
+        assistencia_logo_url: null
       }));
     }
   }
@@ -69,7 +72,10 @@ export default async function handler(req: any, res: any) {
       streaming_url: profile?.streaming_url ?? null,
       assistencia_nome: profile?.assistencia_nome ?? null,
       assistencia_cnpj: profile?.assistencia_cnpj ?? null,
-      assistencia_telefone: profile?.assistencia_telefone ?? null
+      assistencia_telefone: profile?.assistencia_telefone ?? null,
+      assistencia_endereco: profile?.assistencia_endereco ?? null,
+      assistencia_instagram: profile?.assistencia_instagram ?? null,
+      assistencia_logo_url: profile?.assistencia_logo_url ?? null
     };
   });
 

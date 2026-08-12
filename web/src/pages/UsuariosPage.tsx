@@ -16,6 +16,9 @@ type UserForm = {
   assistencia_nome: string;
   assistencia_cnpj: string;
   assistencia_telefone: string;
+  assistencia_endereco: string;
+  assistencia_instagram: string;
+  assistencia_logo_url: string;
 };
 
 const initialForm: UserForm = {
@@ -27,7 +30,10 @@ const initialForm: UserForm = {
   streaming_url: "",
   assistencia_nome: "",
   assistencia_cnpj: "",
-  assistencia_telefone: ""
+  assistencia_telefone: "",
+  assistencia_endereco: "",
+  assistencia_instagram: "",
+  assistencia_logo_url: ""
 };
 
 const ROLE_OPTIONS: UserRole[] = ["admin", "gerente", "atendente", "tecnico"];
@@ -91,32 +97,38 @@ export function UsuariosPage() {
     });
   }, [search, users]);
 
+  function baseStateFromUser(user: typeof users[number]): Omit<UserForm, "email" | "password"> {
+    return {
+      nome: user.nome,
+      role: user.role,
+      streaming_panel: Boolean(user.user_features?.streaming_panel),
+      streaming_url: user.streaming_url ?? "",
+      assistencia_nome: user.assistencia_nome ?? "",
+      assistencia_cnpj: user.assistencia_cnpj ?? "",
+      assistencia_telefone: user.assistencia_telefone ?? "",
+      assistencia_endereco: user.assistencia_endereco ?? "",
+      assistencia_instagram: user.assistencia_instagram ?? "",
+      assistencia_logo_url: user.assistencia_logo_url ?? ""
+    };
+  }
+
   function editableState(user: typeof users[number]) {
-    return (
-      inlineEdits[user.id] ?? {
-        nome: user.nome,
-        role: user.role,
-        streaming_panel: Boolean(user.user_features?.streaming_panel),
-        streaming_url: user.streaming_url ?? "",
-        assistencia_nome: user.assistencia_nome ?? "",
-        assistencia_cnpj: user.assistencia_cnpj ?? "",
-        assistencia_telefone: user.assistencia_telefone ?? ""
-      }
-    );
+    return inlineEdits[user.id] ?? baseStateFromUser(user);
   }
 
   function setEditableState(userId: string, patch: Partial<Omit<UserForm, "email" | "password">>) {
     const current = inlineEdits[userId];
+    const user = users.find((u) => u.id === userId);
+    const base = current ?? (user ? baseStateFromUser(user) : undefined);
+
+    if (!base) {
+      return;
+    }
+
     setInlineEdits((previous) => ({
       ...previous,
       [userId]: {
-        nome: current?.nome ?? "",
-        role: current?.role ?? "tecnico",
-        streaming_panel: current?.streaming_panel ?? false,
-        streaming_url: current?.streaming_url ?? "",
-        assistencia_nome: current?.assistencia_nome ?? "",
-        assistencia_cnpj: current?.assistencia_cnpj ?? "",
-        assistencia_telefone: current?.assistencia_telefone ?? "",
+        ...base,
         ...patch
       }
     }));
@@ -141,7 +153,10 @@ export function UsuariosPage() {
       streaming_url: createForm.streaming_panel ? (createForm.streaming_url.trim() || null) : null,
       assistencia_nome: createForm.assistencia_nome.trim() || null,
       assistencia_cnpj: createForm.assistencia_cnpj.trim() || null,
-      assistencia_telefone: createForm.assistencia_telefone.trim() || null
+      assistencia_telefone: createForm.assistencia_telefone.trim() || null,
+      assistencia_endereco: createForm.assistencia_endereco.trim() || null,
+      assistencia_instagram: createForm.assistencia_instagram.trim() || null,
+      assistencia_logo_url: createForm.assistencia_logo_url.trim() || null
     });
   }
 
@@ -426,6 +441,33 @@ export function UsuariosPage() {
                   onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_telefone: event.target.value }))}
                   className="input-dark"
                   placeholder="(00) 00000-0000"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Endereço da assistencia</span>
+                <input
+                  value={createForm.assistencia_endereco}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_endereco: event.target.value }))}
+                  className="input-dark"
+                  placeholder="Rua, número, bairro - Cidade/UF"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">Instagram</span>
+                <input
+                  value={createForm.assistencia_instagram}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_instagram: event.target.value }))}
+                  className="input-dark"
+                  placeholder="@minhaassistencia"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-medium text-slate-300">URL do logo</span>
+                <input
+                  value={createForm.assistencia_logo_url}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_logo_url: event.target.value }))}
+                  className="input-dark"
+                  placeholder="https://.../logo.png"
                 />
               </label>
             </div>

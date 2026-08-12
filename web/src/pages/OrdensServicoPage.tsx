@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronLeft, ChevronRight, Download, Edit3, FileText, Plus, Search, Trash2, X, Zap } from "lucide-react";
-import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe, listOs, updateOs, updateStatus, validateImeiSerial } from "../modules/os/service";
+import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe, getUltimaNotaPorOs, listOs, updateOs, updateStatus, validateImeiSerial } from "../modules/os/service";
 import { gerarPdfOS } from "../lib/pdf";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
 import { supabase } from "../lib/supabase";
+import { roleGroups } from "../lib/rbac";
 import type { Cliente, OrdemServico } from "../types";
 
 type NotaModalState = {
@@ -79,6 +80,8 @@ export function OrdensServicoPage() {
   const queryClient = useQueryClient();
 
   const isOwner = user?.email === "lkaua.lopes01@gmail.com" || user?.app_metadata?.role === "admin";
+  const podeGerarNota = Boolean(profile?.role && roleGroups.operations.includes(profile.role));
+  const podeEmitirNfe = Boolean(profile?.role && roleGroups.leadership.includes(profile.role));
   useRealtimeChannel(["os", page, search], "ordens_servico");
 
   const { data, isLoading } = useQuery({
@@ -252,10 +255,34 @@ export function OrdensServicoPage() {
     }
   }
 
+  const clientesById = useMemo(() => {
+    const map = new Map<string, Cliente>();
+    (clientes ?? []).forEach((c) => map.set(c.id, c));
+    return map;
+  }, [clientes]);
+
+  async function handleGerarPdfOs(os: OrdemServico) {
+    setFeedback(null);
+    try {
+      const nota = await getUltimaNotaPorOs(os.id);
+      await gerarPdfOS(os, clientesById.get(os.cliente_id) ?? null, nota, profile ?? undefined);
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Falha ao gerar PDF da OS.");
+    }
+  }
+
   async function handleEmitirNfe(osId: string, clienteId: string) {
     setFeedback(null);
-    try { await nfeMutation.mutateAsync({ os_id: osId, cliente_id: clienteId, valor_total: 199.9, ambiente: "homologacao" }); }
-    catch (err) { setFeedback(err instanceof Error ? err.message : "Falha ao emitir NF-e"); }
+    try {
+      const nota = await getUltimaNotaPorOs(osId);
+      if (!nota) {
+        setFeedback("Gere a nota de servico desta OS antes de emitir a NF-e (a NF-e usa o valor real da nota).");
+        return;
+      }
+      await nfeMutation.mutateAsync({ os_id: osId, cliente_id: clienteId, valor_total: nota.total, ambiente: "homologacao" });
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Falha ao emitir NF-e");
+    }
   }
 
   function abrirModalNota(osId: string, clienteId: string, numeroOs: number, equipamento: string) {
@@ -352,9 +379,13 @@ export function OrdensServicoPage() {
                           </button>
                         )}
                         <button className="btn-ghost !px-2 !py-1.5" onClick={() => abrirModalEditarOs(os)} title="Editar"><Edit3 size={13} /></button>
-                        <button className="btn-ghost !px-2 !py-1.5" onClick={() => gerarPdfOS(os, profile ?? undefined)} title="PDF"><Download size={13} /></button>
-                        <button className="btn-ghost !px-2 !py-1.5 !text-indigo-300 !border-indigo-500/20" onClick={() => abrirModalNota(os.id, os.cliente_id, os.numero_sequencial, `${os.tipo_equipamento} ${os.marca} ${os.modelo}`)} disabled={notaMutation.isPending} title="Nota"><FileText size={13} /></button>
-                        <button className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20" onClick={() => handleEmitirNfe(os.id, os.cliente_id)} disabled={nfeMutation.isPending} title="NF-e"><Zap size={13} /></button>
+                        <button className="btn-ghost !px-2 !py-1.5" onClick={() => handleGerarPdfOs(os)} title="PDF"><Download size={13} /></button>
+                        {podeGerarNota && (
+                          <button className="btn-ghost !px-2 !py-1.5 !text-indigo-300 !border-indigo-500/20" onClick={() => abrirModalNota(os.id, os.cliente_id, os.numero_sequencial, `${os.tipo_equipamento} ${os.marca} ${os.modelo}`)} disabled={notaMutation.isPending} title="Nota"><FileText size={13} /></button>
+                        )}
+                        {podeEmitirNfe && (
+                          <button className="btn-ghost !px-2 !py-1.5 !text-emerald-300 !border-emerald-500/20" onClick={() => handleEmitirNfe(os.id, os.cliente_id)} disabled={nfeMutation.isPending} title="NF-e"><Zap size={13} /></button>
+                        )}
                         {isOwner && (
                           <>
                             <button className="btn-ghost !px-2 !py-1.5 !text-rose-300 !border-rose-500/20" onClick={() => deleteNotaMutation.mutate(os.id)} disabled={deleteNotaMutation.isPending} title="Excluir nota"><FileText size={13} /><X size={10} className="-ml-1.5" /></button>

@@ -53,7 +53,7 @@ export async function listManagedUsers() {
     // Fallback local: usa tabela profiles quando API serverless nao esta disponivel.
     const { data, error } = await supabase
       .from("profiles")
-      .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,created_at")
+      .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,assistencia_endereco,assistencia_instagram,assistencia_logo_url,created_at")
       .order("nome", { ascending: true });
 
     if (error) {
@@ -70,6 +70,9 @@ export async function listManagedUsers() {
       assistencia_nome: profile.assistencia_nome,
       assistencia_cnpj: profile.assistencia_cnpj,
       assistencia_telefone: profile.assistencia_telefone,
+      assistencia_endereco: profile.assistencia_endereco,
+      assistencia_instagram: profile.assistencia_instagram,
+      assistencia_logo_url: profile.assistencia_logo_url,
       created_at: profile.created_at ?? new Date().toISOString()
     })) as ManagedUser[];
   }
@@ -122,11 +125,17 @@ export async function updateOwnAssistencia(input: {
   assistencia_nome: string;
   assistencia_cnpj: string;
   assistencia_telefone: string;
+  assistencia_endereco?: string;
+  assistencia_instagram?: string;
+  assistencia_logo_url?: string;
 }) {
   const { error } = await supabase.rpc("update_own_assistencia", {
     p_nome: input.assistencia_nome,
     p_cnpj: input.assistencia_cnpj,
-    p_telefone: input.assistencia_telefone
+    p_telefone: input.assistencia_telefone,
+    p_endereco: input.assistencia_endereco ?? "",
+    p_instagram: input.assistencia_instagram ?? "",
+    p_logo_url: input.assistencia_logo_url ?? ""
   });
 
   if (error) {

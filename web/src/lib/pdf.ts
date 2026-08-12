@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
-import type { AssistenciaTecnicaProfile, OrdemServico } from "../types";
+import type { AssistenciaTecnicaProfile, Cliente, OrdemServico } from "../types";
+import type { NotaServicoResumoOs } from "../modules/os/service";
 
 const COMPANY = {
   nome: import.meta.env.VITE_COMPANY_NAME ?? "OrdemFlow Tech",
@@ -7,11 +8,20 @@ const COMPANY = {
   telefone: import.meta.env.VITE_COMPANY_PHONE ?? "--"
 };
 
+const BRAND = { r: 13, g: 91, b: 214 };
+const INK = { r: 15, g: 23, b: 42 };
+const MUTED = { r: 100, g: 116, b: 139 };
+const LINE = { r: 226, g: 232, b: 240 };
+const PANEL = { r: 248, g: 250, b: 252 };
+
 function resolveCompany(company?: Partial<AssistenciaTecnicaProfile>) {
   return {
     nome: company?.assistencia_nome?.trim() || COMPANY.nome,
     cnpj: company?.assistencia_cnpj?.trim() || COMPANY.cnpj,
-    telefone: company?.assistencia_telefone?.trim() || COMPANY.telefone
+    telefone: company?.assistencia_telefone?.trim() || COMPANY.telefone,
+    endereco: company?.assistencia_endereco?.trim() || "",
+    instagram: company?.assistencia_instagram?.trim() || "",
+    logoUrl: company?.assistencia_logo_url?.trim() || ""
   };
 }
 
@@ -19,154 +29,244 @@ function formatarStatus(status: string) {
   return status.replace(/_/g, " ");
 }
 
-function addSectionTitle(doc: jsPDF, title: string, y: number) {
-  doc.setFillColor(240, 253, 255);
-  doc.roundedRect(14, y - 5, 182, 8, 2, 2, "F");
-  doc.setFillColor(6, 182, 212);
-  doc.rect(14, y - 5, 3, 8, "F");
-  doc.setTextColor(15, 23, 42);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text(title, 21, y);
+function formatarMoeda(valor: number) {
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function gerarPdfOS(os: OrdemServico, company?: Partial<AssistenciaTecnicaProfile>) {
+async function carregarLogo(url: string): Promise<{ dataUrl: string; width: number; height: number } | null> {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const blob = await response.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+
+    return { dataUrl, ...dimensions };
+  } catch {
+    return null;
+  }
+}
+
+function addSectionTitle(doc: jsPDF, title: string, y: number) {
+  doc.setFillColor(PANEL.r, PANEL.g, PANEL.b);
+  doc.roundedRect(14, y - 5, 182, 8, 1.5, 1.5, "F");
+  doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+  doc.rect(14, y - 5, 2.5, 8, "F");
+  doc.setTextColor(INK.r, INK.g, INK.b);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9.5);
+  doc.text(title.toUpperCase(), 21, y);
+}
+
+function addField(doc: jsPDF, label: string, value: string, x: number, y: number, labelWidth = 28) {
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+  doc.text(label, x, y);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(INK.r, INK.g, INK.b);
+  doc.text(value || "--", x + labelWidth, y);
+}
+
+export async function gerarPdfOS(
+  os: OrdemServico,
+  cliente?: Cliente | null,
+  nota?: NotaServicoResumoOs | null,
+  company?: Partial<AssistenciaTecnicaProfile>
+) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const companyData = resolveCompany(company);
+  const logo = await carregarLogo(companyData.logoUrl);
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const generatedAt = new Date();
   const prazo = new Date(os.prazo_estimado);
 
-  // Header: barra cyan fina no topo + fundo branco
-  doc.setFillColor(6, 182, 212);
-  doc.rect(0, 0, pageWidth, 3, "F");
-  doc.setFillColor(255, 255, 255);
-  doc.rect(0, 3, pageWidth, 25, "F");
-  doc.setDrawColor(226, 232, 240);
-  doc.line(0, 28, pageWidth, 28);
+  // Header
+  doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+  doc.rect(0, 0, pageWidth, 32, "F");
+
+  let headerTextX = 14;
+  if (logo) {
+    const maxH = 16;
+    const ratio = logo.width / logo.height;
+    const h = maxH;
+    const w = h * ratio;
+    try {
+      doc.addImage(logo.dataUrl, "PNG", 14, 8, w, h);
+      headerTextX = 14 + w + 6;
+    } catch {
+      headerTextX = 14;
+    }
+  }
 
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(16);
-  doc.text("NOTA DE SERVICO", 14, 14);
-  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(15);
+  doc.text(companyData.nome, headerTextX, 14);
+
+  const contatoPartes = [
+    companyData.cnpj !== "--" ? `CNPJ ${companyData.cnpj}` : null,
+    companyData.telefone !== "--" ? companyData.telefone : null,
+    companyData.endereco || null,
+    companyData.instagram || null
+  ].filter(Boolean);
+
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  doc.text(`${companyData.nome}  |  CNPJ ${companyData.cnpj}  |  ${companyData.telefone}`, 14, 21);
+  doc.setFontSize(8.5);
+  doc.setTextColor(224, 236, 255);
+  doc.text(contatoPartes.join("  |  "), headerTextX, 20);
 
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(255, 255, 255);
+  doc.text("ORDEM DE SERVICO", pageWidth - 14, 13, { align: "right" });
   doc.setFontSize(11);
-  doc.setTextColor(6, 182, 212);
-  doc.text(`OS #${os.numero_sequencial}`, 160, 14);
+  doc.text(`Nº ${String(os.numero_sequencial).padStart(5, "0")}`, pageWidth - 14, 20, { align: "right" });
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Emissao: ${generatedAt.toLocaleDateString("pt-BR")} ${generatedAt.toLocaleTimeString("pt-BR")}`, 141, 21);
+  doc.setFontSize(8);
+  doc.text(`Emissao: ${generatedAt.toLocaleDateString("pt-BR")} ${generatedAt.toLocaleTimeString("pt-BR")}`, pageWidth - 14, 26, { align: "right" });
 
   // Body card
-  doc.setDrawColor(226, 232, 240);
+  doc.setDrawColor(LINE.r, LINE.g, LINE.b);
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(10, 32, 190, 225, 3, 3, "FD");
+  doc.roundedRect(10, 38, 190, 220, 3, 3, "FD");
 
-  let y = 44;
-  addSectionTitle(doc, "Dados da Ordem de Servico", y);
+  let y = 50;
+
+  addSectionTitle(doc, "Dados do Cliente", y);
   y += 8;
+  addField(doc, "Nome:", cliente?.nome_razao_social ?? "--", 16, y, 22);
+  addField(doc, "CPF/CNPJ:", cliente?.cpf_cnpj ?? "--", 110, y, 24);
+  y += 6;
+  addField(doc, "Telefone:", cliente?.telefone ?? "--", 16, y, 22);
+  addField(doc, "E-mail:", cliente?.email ?? "--", 110, y, 24);
+  y += 6;
+  addField(doc, "Endereco:", cliente?.endereco ?? "--", 16, y, 22);
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(71, 85, 105);
-  doc.text("Equipamento:", 16, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text(`${os.tipo_equipamento} ${os.marca} ${os.modelo}`, 44, y);
-  y += 7;
+  y += 12;
+  addSectionTitle(doc, "Dados do Equipamento", y);
+  y += 8;
+  addField(doc, "Equipamento:", `${os.tipo_equipamento} ${os.marca} ${os.modelo}`, 16, y, 28);
+  y += 6;
+  addField(doc, "Serial/IMEI:", os.serial_imei || "--", 16, y, 28);
+  addField(doc, "Prioridade:", os.prioridade, 110, y, 24);
+  y += 6;
+  addField(doc, "Status:", formatarStatus(os.status), 16, y, 28);
+  addField(doc, "Previsao:", prazo.toLocaleDateString("pt-BR"), 110, y, 24);
 
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Serial/IMEI:", 16, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text(os.serial_imei || "--", 44, y);
-  y += 7;
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Status:", 16, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text(formatarStatus(os.status), 44, y);
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Prioridade:", 108, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text(os.prioridade, 132, y);
-  y += 7;
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Prazo estimado:", 16, y);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text(prazo.toLocaleDateString("pt-BR"), 44, y);
-
-  y += 10;
+  y += 12;
   addSectionTitle(doc, "Problema Relatado", y);
   y += 8;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(9.5);
+  doc.setTextColor(INK.r, INK.g, INK.b);
   const problemaLines = doc.splitTextToSize(os.problema_relatado || "--", 172);
   doc.text(problemaLines, 16, y);
-  y += Math.max(16, problemaLines.length * 5 + 3);
+  y += Math.max(14, problemaLines.length * 5 + 4);
 
-  addSectionTitle(doc, "Observacoes Internas", y);
-  y += 8;
-  doc.setTextColor(15, 23, 42);
-  const obsLines = doc.splitTextToSize(os.observacoes_internas || "Sem observacoes internas.", 172);
-  doc.text(obsLines, 16, y);
-  y += Math.max(20, obsLines.length * 5 + 8);
+  if (os.observacoes_internas) {
+    addSectionTitle(doc, "Observacoes Internas", y);
+    y += 8;
+    doc.setTextColor(INK.r, INK.g, INK.b);
+    const obsLines = doc.splitTextToSize(os.observacoes_internas, 172);
+    doc.text(obsLines, 16, y);
+    y += Math.max(14, obsLines.length * 5 + 4);
+  }
 
   addSectionTitle(doc, "Resumo Financeiro", y);
-  y += 8;
-  doc.setDrawColor(226, 232, 240);
-  doc.setFillColor(249, 250, 251);
-  doc.rect(16, y - 4, 168, 24, "FD");
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Servico", 18, y + 2);
-  doc.text("Valor", 166, y + 2, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(15, 23, 42);
-  doc.text("Diagnostico e manutencao tecnica", 18, y + 10);
-  doc.text("R$ 0,00", 166, y + 10, { align: "right" });
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 23, 42);
-  doc.text("Total", 18, y + 18);
-  doc.text("R$ 0,00", 166, y + 18, { align: "right" });
+  y += 9;
+  doc.setDrawColor(LINE.r, LINE.g, LINE.b);
+  doc.setFillColor(PANEL.r, PANEL.g, PANEL.b);
 
-  y += 34;
+  if (nota) {
+    doc.rect(16, y - 5, 168, 30, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+    doc.text("Subtotal", 18, y + 1);
+    doc.text("Descontos", 18, y + 8);
+    doc.text("Forma de pagamento", 100, y + 1);
+    doc.text("Garantia", 100, y + 8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(INK.r, INK.g, INK.b);
+    doc.text(formatarMoeda(nota.subtotal), 55, y + 1);
+    doc.text(formatarMoeda(nota.descontos), 55, y + 8);
+    doc.text(nota.forma_pagamento || "--", 148, y + 1);
+    doc.text(nota.garantia || "--", 148, y + 8);
+    doc.setDrawColor(LINE.r, LINE.g, LINE.b);
+    doc.line(18, y + 12, 182, y + 12);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10.5);
+    doc.setTextColor(INK.r, INK.g, INK.b);
+    doc.text("Total", 18, y + 19);
+    doc.setTextColor(BRAND.r, BRAND.g, BRAND.b);
+    doc.text(formatarMoeda(nota.total), 182, y + 19, { align: "right" });
+    y += 34;
+  } else {
+    doc.rect(16, y - 5, 168, 16, "FD");
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9.5);
+    doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+    doc.text("Orcamento ainda nao gerado para esta OS. Valores a definir apos diagnostico.", 18, y + 4);
+    y += 20;
+  }
+
+  y += 4;
+  doc.setDrawColor(LINE.r, LINE.g, LINE.b);
+  doc.setFillColor(PANEL.r, PANEL.g, PANEL.b);
+  doc.rect(16, y - 4, 168, 20, "FD");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+  const termos = doc.splitTextToSize(
+    "Ao assinar, o cliente autoriza a abertura do equipamento para diagnostico e reparo, ciente de que aparelhos com danos previos podem sofrer avarias adicionais durante o processo. " +
+      "A garantia cobre exclusivamente o servico executado e perde validade em caso de queda, oxidacao, mau uso ou violacao por terceiros.",
+    172
+  );
+  doc.text(termos, 18, y + 2);
+
+  y += 26;
   doc.setDrawColor(148, 163, 184);
   doc.line(16, y, 86, y);
   doc.line(114, y, 184, y);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.setTextColor(71, 85, 105);
-  doc.text("Assinatura do Cliente", 36, y + 5, { align: "center" });
+  doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
+  doc.text("Assinatura do Cliente", 51, y + 5, { align: "center" });
   doc.text("Responsavel Tecnico", 149, y + 5, { align: "center" });
 
   // Footer
-  doc.setDrawColor(226, 232, 240);
-  doc.line(10, 260, 200, 260);
-  doc.setFillColor(255, 255, 255);
-  doc.setTextColor(100, 116, 139);
+  doc.setDrawColor(LINE.r, LINE.g, LINE.b);
+  doc.line(10, 262, 200, 262);
+  doc.setTextColor(MUTED.r, MUTED.g, MUTED.b);
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(8.5);
-  doc.text(`Documento gerado eletronicamente por ${companyData.nome}.`, 14, 267);
-  doc.text("Validade deste documento condicionada ao registro da OS no sistema.", 14, 272);
-  doc.text(`Codigo OS: ${os.id}`, 14, 277);
+  doc.setFontSize(8);
+  doc.text(`Documento gerado eletronicamente por ${companyData.nome}.`, 14, 268);
+  doc.text("Validade deste documento condicionada ao registro da OS no sistema.", 14, 273);
+  doc.text(`Codigo OS: ${os.id}`, 14, 278);
 
   doc.save(`os-${os.numero_sequencial}.pdf`);
 }

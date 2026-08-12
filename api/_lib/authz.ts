@@ -16,7 +16,7 @@ function getBearerToken(req: any): string | null {
   return token;
 }
 
-export async function requireAdmin(req: any, res: any) {
+async function resolveAuthenticatedUser(req: any, res: any) {
   const accessToken = getBearerToken(req);
   if (!accessToken) {
     res.status(401).json({ error: "Token de acesso ausente." });
@@ -36,7 +36,7 @@ export async function requireAdmin(req: any, res: any) {
 
   // Fast-path: owner/admin em metadata nao depende de tabela profiles.
   if (isOwner || roleFromMetadata === "admin") {
-    return { userId, accessToken };
+    return { userId, accessToken, role: "admin" as const };
   }
 
   const { data: profile, error: profileError } = await supabaseAdmin
@@ -47,17 +47,38 @@ export async function requireAdmin(req: any, res: any) {
 
   if (profileError) {
     // Evita 500 quando schema/permissoes de profiles ainda nao estao prontos.
+    res.status(403).json({ error: "Nao foi possivel verificar as permissoes do usuario." });
+    return null;
+  }
+
+  const role = profile?.role ?? roleFromMetadata ?? "tecnico";
+  return { userId, accessToken, role };
+}
+
+export async function requireAdmin(req: any, res: any) {
+  const auth = await resolveAuthenticatedUser(req, res);
+  if (!auth) {
+    return null;
+  }
+
+  if (auth.role !== "admin") {
     res.status(403).json({ error: "Acesso permitido apenas para administradores." });
     return null;
   }
 
-  const roleFromProfile = profile?.role;
-  const isAdmin = roleFromProfile === "admin";
+  return { userId: auth.userId, accessToken: auth.accessToken };
+}
 
-  if (!isAdmin) {
-    res.status(403).json({ error: "Acesso permitido apenas para administradores." });
+export async function requireRole(req: any, res: any, allowedRoles: string[]) {
+  const auth = await resolveAuthenticatedUser(req, res);
+  if (!auth) {
     return null;
   }
 
-  return { userId, accessToken };
+  if (!allowedRoles.includes(auth.role)) {
+    res.status(403).json({ error: "Voce nao tem permissao para executar esta acao." });
+    return null;
+  }
+
+  return auth;
 }

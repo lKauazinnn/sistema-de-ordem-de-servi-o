@@ -33,6 +33,9 @@ function buildProfileFromSession(session: Session | null, role: UserRole): UserP
     assistencia_nome?: string | null;
     assistencia_cnpj?: string | null;
     assistencia_telefone?: string | null;
+    assistencia_endereco?: string | null;
+    assistencia_instagram?: string | null;
+    assistencia_logo_url?: string | null;
   } | undefined;
   const userFeatures = readUserFeatures(session);
 
@@ -45,7 +48,10 @@ function buildProfileFromSession(session: Session | null, role: UserRole): UserP
     streaming_url: typeof userMetadata?.streaming_url === "string" ? userMetadata.streaming_url : null,
     assistencia_nome: typeof userMetadata?.assistencia_nome === "string" ? userMetadata.assistencia_nome : null,
     assistencia_cnpj: typeof userMetadata?.assistencia_cnpj === "string" ? userMetadata.assistencia_cnpj : null,
-    assistencia_telefone: typeof userMetadata?.assistencia_telefone === "string" ? userMetadata.assistencia_telefone : null
+    assistencia_telefone: typeof userMetadata?.assistencia_telefone === "string" ? userMetadata.assistencia_telefone : null,
+    assistencia_endereco: typeof userMetadata?.assistencia_endereco === "string" ? userMetadata.assistencia_endereco : null,
+    assistencia_instagram: typeof userMetadata?.assistencia_instagram === "string" ? userMetadata.assistencia_instagram : null,
+    assistencia_logo_url: typeof userMetadata?.assistencia_logo_url === "string" ? userMetadata.assistencia_logo_url : null
   };
 }
 
@@ -85,7 +91,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone")
+        .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,assistencia_endereco,assistencia_instagram,assistencia_logo_url")
         .eq("id", currentSession.user.id)
         .maybeSingle();
 
@@ -107,7 +113,10 @@ export function SessionProvider({ children }: PropsWithChildren) {
         streaming_url: data.streaming_url,
         assistencia_nome: data.assistencia_nome,
         assistencia_cnpj: data.assistencia_cnpj,
-        assistencia_telefone: data.assistencia_telefone
+        assistencia_telefone: data.assistencia_telefone,
+        assistencia_endereco: data.assistencia_endereco,
+        assistencia_instagram: data.assistencia_instagram,
+        assistencia_logo_url: data.assistencia_logo_url
       });
     }
 

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { supabaseAdmin } from "../_lib/supabaseAdmin";
 import { parseBody } from "../_lib/security";
+import { requireRole } from "../_lib/authz";
 
 const nfeSchema = z.object({
   os_id: z.string().uuid(),
@@ -12,6 +13,11 @@ const nfeSchema = z.object({
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Metodo nao permitido" });
+  }
+
+  const auth = await requireRole(req, res, ["admin", "gerente"]);
+  if (!auth) {
+    return;
   }
 
   try {

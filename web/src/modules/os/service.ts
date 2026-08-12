@@ -251,10 +251,17 @@ export async function createOs(input: OsInput) {
     return data as OrdemServico;
   }
 
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) {
+    throw new Error("Sessao expirada. Faca login novamente.");
+  }
+
   const response = await fetch("/api/os/create", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`
     },
     body: JSON.stringify(input)
   });
@@ -302,10 +309,17 @@ export async function emitirNfe(input: {
   const useServerNfe = import.meta.env.VITE_USE_SERVER_NFE === "true";
 
   if (useServerNfe) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) {
+      throw new Error("Sessao expirada. Faca login novamente.");
+    }
+
     const response = await fetch("/api/nfe/emit", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`
       },
       body: JSON.stringify(input)
     });
@@ -367,6 +381,34 @@ export async function deleteNota(notaId: string) {
   if (error) {
     throw new Error(mapOsError(error));
   }
+}
+
+export type NotaServicoResumoOs = {
+  numero: number;
+  subtotal: number;
+  descontos: number;
+  impostos: number;
+  total: number;
+  forma_pagamento: string | null;
+  garantia: string | null;
+  prazo: string | null;
+  created_at: string;
+};
+
+export async function getUltimaNotaPorOs(osId: string): Promise<NotaServicoResumoOs | null> {
+  const { data, error } = await supabase
+    .from("notas_servico")
+    .select("numero,subtotal,descontos,impostos,total,forma_pagamento,garantia,prazo,created_at")
+    .eq("os_id", osId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(mapOsError(error));
+  }
+
+  return (data as NotaServicoResumoOs | null) ?? null;
 }
 
 export async function deleteUltimaNotaPorOs(osId: string) {

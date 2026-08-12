@@ -13,7 +13,10 @@ const schema = z.object({
   streaming_url: z.string().url().optional().or(z.literal("")).nullable(),
   assistencia_nome: z.string().min(2).max(120).optional().or(z.literal("")).nullable(),
   assistencia_cnpj: z.string().max(32).optional().or(z.literal("")).nullable(),
-  assistencia_telefone: z.string().max(32).optional().or(z.literal("")).nullable()
+  assistencia_telefone: z.string().max(32).optional().or(z.literal("")).nullable(),
+  assistencia_endereco: z.string().max(200).optional().or(z.literal("")).nullable(),
+  assistencia_instagram: z.string().max(60).optional().or(z.literal("")).nullable(),
+  assistencia_logo_url: z.string().url().max(500).optional().or(z.literal("")).nullable()
 });
 
 export default async function handler(req: any, res: any) {
@@ -36,6 +39,9 @@ export default async function handler(req: any, res: any) {
         assistencia_nome?: string | null;
         assistencia_cnpj?: string | null;
         assistencia_telefone?: string | null;
+        assistencia_endereco?: string | null;
+        assistencia_instagram?: string | null;
+        assistencia_logo_url?: string | null;
       };
     } = {};
 
@@ -43,6 +49,9 @@ export default async function handler(req: any, res: any) {
     const cleanedAssistenciaNome = typeof input.assistencia_nome === "string" ? sanitizeString(input.assistencia_nome) : null;
     const cleanedAssistenciaCnpj = typeof input.assistencia_cnpj === "string" ? sanitizeString(input.assistencia_cnpj) : null;
     const cleanedAssistenciaTelefone = typeof input.assistencia_telefone === "string" ? sanitizeString(input.assistencia_telefone) : null;
+    const cleanedAssistenciaEndereco = typeof input.assistencia_endereco === "string" ? sanitizeString(input.assistencia_endereco) : null;
+    const cleanedAssistenciaInstagram = typeof input.assistencia_instagram === "string" ? sanitizeString(input.assistencia_instagram) : null;
+    const cleanedAssistenciaLogoUrl = typeof input.assistencia_logo_url === "string" ? input.assistencia_logo_url.trim() : null;
 
     if (input.role) {
       updateAuthPayload.app_metadata = {
@@ -74,12 +83,22 @@ export default async function handler(req: any, res: any) {
       };
     }
 
-    if (input.assistencia_nome !== undefined || input.assistencia_cnpj !== undefined || input.assistencia_telefone !== undefined) {
+    if (
+      input.assistencia_nome !== undefined ||
+      input.assistencia_cnpj !== undefined ||
+      input.assistencia_telefone !== undefined ||
+      input.assistencia_endereco !== undefined ||
+      input.assistencia_instagram !== undefined ||
+      input.assistencia_logo_url !== undefined
+    ) {
       updateAuthPayload.user_metadata = {
         ...(updateAuthPayload.user_metadata ?? {}),
         assistencia_nome: cleanedAssistenciaNome || null,
         assistencia_cnpj: cleanedAssistenciaCnpj || null,
-        assistencia_telefone: cleanedAssistenciaTelefone || null
+        assistencia_telefone: cleanedAssistenciaTelefone || null,
+        assistencia_endereco: cleanedAssistenciaEndereco || null,
+        assistencia_instagram: cleanedAssistenciaInstagram || null,
+        assistencia_logo_url: cleanedAssistenciaLogoUrl || null
       };
     }
 
@@ -123,6 +142,18 @@ export default async function handler(req: any, res: any) {
       profilePatch.assistencia_telefone = cleanedAssistenciaTelefone || null;
     }
 
+    if (input.assistencia_endereco !== undefined) {
+      profilePatch.assistencia_endereco = cleanedAssistenciaEndereco || null;
+    }
+
+    if (input.assistencia_instagram !== undefined) {
+      profilePatch.assistencia_instagram = cleanedAssistenciaInstagram || null;
+    }
+
+    if (input.assistencia_logo_url !== undefined) {
+      profilePatch.assistencia_logo_url = cleanedAssistenciaLogoUrl || null;
+    }
+
     if (wantsStreamingEnabled === false) {
       profilePatch.streaming_url = null;
       updateAuthPayload.user_metadata = {
@@ -144,7 +175,7 @@ export default async function handler(req: any, res: any) {
 
     const { data: updatedProfile, error: fetchError } = await supabaseAdmin
       .from("profiles")
-      .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,created_at")
+      .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,assistencia_endereco,assistencia_instagram,assistencia_logo_url,created_at")
       .eq("id", input.id)
       .single();
 

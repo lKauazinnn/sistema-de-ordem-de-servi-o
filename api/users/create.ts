@@ -14,7 +14,10 @@ const schema = z.object({
   streaming_url: z.string().url().optional().or(z.literal("")),
   assistencia_nome: z.string().min(2).max(120).optional().or(z.literal("")),
   assistencia_cnpj: z.string().max(32).optional().or(z.literal("")),
-  assistencia_telefone: z.string().max(32).optional().or(z.literal(""))
+  assistencia_telefone: z.string().max(32).optional().or(z.literal("")),
+  assistencia_endereco: z.string().max(200).optional().or(z.literal("")),
+  assistencia_instagram: z.string().max(60).optional().or(z.literal("")),
+  assistencia_logo_url: z.string().url().max(500).optional().or(z.literal(""))
 });
 
 export default async function handler(req: any, res: any) {
@@ -35,6 +38,9 @@ export default async function handler(req: any, res: any) {
     const assistenciaNome = input.assistencia_nome ? sanitizeString(input.assistencia_nome) : null;
     const assistenciaCnpj = input.assistencia_cnpj ? sanitizeString(input.assistencia_cnpj) : null;
     const assistenciaTelefone = input.assistencia_telefone ? sanitizeString(input.assistencia_telefone) : null;
+    const assistenciaEndereco = input.assistencia_endereco ? sanitizeString(input.assistencia_endereco) : null;
+    const assistenciaInstagram = input.assistencia_instagram ? sanitizeString(input.assistencia_instagram) : null;
+    const assistenciaLogoUrl = input.assistencia_logo_url ? input.assistencia_logo_url.trim() : null;
     const features = {
       streaming_panel: Boolean(input.user_features?.streaming_panel)
     };
@@ -48,7 +54,10 @@ export default async function handler(req: any, res: any) {
         streaming_url: features.streaming_panel ? streamingUrl : null,
         assistencia_nome: assistenciaNome,
         assistencia_cnpj: assistenciaCnpj,
-        assistencia_telefone: assistenciaTelefone
+        assistencia_telefone: assistenciaTelefone,
+        assistencia_endereco: assistenciaEndereco,
+        assistencia_instagram: assistenciaInstagram,
+        assistencia_logo_url: assistenciaLogoUrl
       },
       app_metadata: {
         role: input.role,
@@ -69,7 +78,10 @@ export default async function handler(req: any, res: any) {
       streaming_url: features.streaming_panel ? streamingUrl : null,
       assistencia_nome: assistenciaNome,
       assistencia_cnpj: assistenciaCnpj,
-      assistencia_telefone: assistenciaTelefone
+      assistencia_telefone: assistenciaTelefone,
+      assistencia_endereco: assistenciaEndereco,
+      assistencia_instagram: assistenciaInstagram,
+      assistencia_logo_url: assistenciaLogoUrl
     });
 
     if (profileError) {
@@ -87,6 +99,9 @@ export default async function handler(req: any, res: any) {
         assistencia_nome: assistenciaNome,
         assistencia_cnpj: assistenciaCnpj,
         assistencia_telefone: assistenciaTelefone,
+        assistencia_endereco: assistenciaEndereco,
+        assistencia_instagram: assistenciaInstagram,
+        assistencia_logo_url: assistenciaLogoUrl,
         created_at: data.user.created_at
       }
     });

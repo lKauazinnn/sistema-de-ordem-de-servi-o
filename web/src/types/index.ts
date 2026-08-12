@@ -10,6 +10,9 @@ export interface AssistenciaTecnicaProfile {
   assistencia_nome: string | null;
   assistencia_cnpj: string | null;
   assistencia_telefone: string | null;
+  assistencia_endereco: string | null;
+  assistencia_instagram: string | null;
+  assistencia_logo_url: string | null;
 }
 
 export interface UserProfile extends AssistenciaTecnicaProfile {
