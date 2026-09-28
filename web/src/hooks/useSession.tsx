@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { PropsWithChildren } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { getValidAccessToken, supabase } from "../lib/supabase";
 import { resolveRoleFromClaims } from "../modules/auth/service";
 import type { UserFeatureKey, UserFeatures, UserProfile, UserRole } from "../types";
 
@@ -17,6 +17,12 @@ type SessionContextValue = {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 type ProfileRow = UserProfile;
+
+type ProfileState = {
+  /** id do usuario cujo perfil ja foi carregado (null = nenhum) */
+  userId: string | null;
+  row: ProfileRow | null;
+};
 
 function readUserFeatures(session: Session | null): UserFeatures {
   const appMetadata = session?.user?.app_metadata as { user_features?: UserFeatures } | undefined;
@@ -57,42 +63,87 @@ function buildProfileFromSession(session: Session | null, role: UserRole): UserP
 
 export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
-  const [profileRow, setProfileRow] = useState<ProfileRow | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileState, setProfileState] = useState<ProfileState>({ userId: null, row: null });
+  const [initializing, setInitializing] = useState(true);
+
+  const userId = session?.user?.id ?? null;
+
+  // Mantem a sessao mais recente acessivel dentro do efeito de perfil sem
+  // fazer o efeito rodar de novo a cada renovacao de token.
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
 
   // Resolve session sem consultar DB para evitar loop por RLS no login.
   useEffect(() => {
+    let active = true;
+
     supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
       setSession(data.session);
-      setLoading(false);
+      setInitializing(false);
     });
 
+    // Eventos como TOKEN_REFRESHED apenas atualizam o token guardado; nenhum
+    // estado de carregamento e reativado, por isso as paginas nao remontam e
+    // o que o usuario ja digitou continua na tela.
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
       setSession(nextSession);
-      setLoading(false);
+      setInitializing(false);
     });
 
-    return () => subscription.subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.subscription.unsubscribe();
+    };
   }, []);
 
+  // Ao voltar para a aba (ou reconectar) apos muito tempo fora, forca a
+  // renovacao do token imediatamente em vez de esperar o proximo ciclo
+  // agendado do supabase-js, para a sessao nao morrer por inatividade.
+  useEffect(() => {
+    function revalidate() {
+      void getValidAccessToken();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        revalidate();
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", revalidate);
+    window.addEventListener("online", revalidate);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", revalidate);
+      window.removeEventListener("online", revalidate);
+    };
+  }, []);
+
+  // Perfil so e recarregado quando muda o usuario logado, nunca a cada
+  // renovacao de token.
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProfile(currentSession: Session | null) {
-      if (!currentSession?.user?.id) {
-        if (!cancelled) {
-          setProfileRow(null);
-        }
-        return;
-      }
+    if (!userId) {
+      setProfileState({ userId: null, row: null });
+      return () => {
+        cancelled = true;
+      };
+    }
 
-      const fallbackRole = resolveRoleFromClaims(currentSession.user.app_metadata, currentSession.user.email ?? null);
+    async function loadProfile(currentUserId: string) {
+      const currentSession = sessionRef.current;
+      const fallbackRole = resolveRoleFromClaims(currentSession?.user?.app_metadata, currentSession?.user?.email ?? null);
       const fallbackProfile = buildProfileFromSession(currentSession, fallbackRole);
 
       const { data, error } = await supabase
         .from("profiles")
         .select("id,nome,email,role,user_features,streaming_url,assistencia_nome,assistencia_cnpj,assistencia_telefone,assistencia_endereco,assistencia_instagram,assistencia_logo_url")
-        .eq("id", currentSession.user.id)
+        .eq("id", currentUserId)
         .maybeSingle();
 
       if (cancelled) {
@@ -100,43 +151,45 @@ export function SessionProvider({ children }: PropsWithChildren) {
       }
 
       if (error || !data) {
-        setProfileRow(fallbackProfile);
+        setProfileState({ userId: currentUserId, row: fallbackProfile });
         return;
       }
 
-      setProfileRow({
-        id: data.id,
-        nome: data.nome,
-        email: data.email,
-        role: data.role,
-        user_features: (data.user_features ?? {}) as UserFeatures,
-        streaming_url: data.streaming_url,
-        assistencia_nome: data.assistencia_nome,
-        assistencia_cnpj: data.assistencia_cnpj,
-        assistencia_telefone: data.assistencia_telefone,
-        assistencia_endereco: data.assistencia_endereco,
-        assistencia_instagram: data.assistencia_instagram,
-        assistencia_logo_url: data.assistencia_logo_url
+      setProfileState({
+        userId: currentUserId,
+        row: {
+          id: data.id,
+          nome: data.nome,
+          email: data.email,
+          role: data.role,
+          user_features: (data.user_features ?? {}) as UserFeatures,
+          streaming_url: data.streaming_url,
+          assistencia_nome: data.assistencia_nome,
+          assistencia_cnpj: data.assistencia_cnpj,
+          assistencia_telefone: data.assistencia_telefone,
+          assistencia_endereco: data.assistencia_endereco,
+          assistencia_instagram: data.assistencia_instagram,
+          assistencia_logo_url: data.assistencia_logo_url
+        }
       });
     }
 
-    setLoading(true);
-    void loadProfile(session).finally(() => {
-      if (!cancelled) {
-        setLoading(false);
-      }
-    });
+    void loadProfile(userId);
 
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [userId]);
 
   const value = useMemo<SessionContextValue>(() => {
     const fallbackRole = resolveRoleFromClaims(session?.user?.app_metadata, session?.user?.email ?? null);
+    const profileRow = profileState.userId === userId ? profileState.row : null;
     const profile = profileRow ?? buildProfileFromSession(session, fallbackRole);
     const role = session ? (profile?.role ?? fallbackRole) : null;
     const userFeatures = profile?.user_features ?? readUserFeatures(session);
+    // Carregando apenas ate a primeira resolucao de sessao/perfil. Depois disso
+    // fica fixo em false para nunca desmontar as telas que estao em uso.
+    const loading = initializing || (userId !== null && profileState.userId !== userId);
 
     return {
       user: session?.user ?? null,
@@ -146,7 +199,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       hasFeature: (feature) => Boolean(userFeatures?.[feature]),
       loading
     };
-  }, [loading, profileRow, session]);
+  }, [initializing, profileState, session, userId]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

@@ -10,6 +10,7 @@ import {
 } from "../modules/dashboard/service";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
+import { usePersistedState } from "../hooks/usePersistedState";
 
 const METODOS_SIM = [
   { value: "pix", label: "PIX", maxParcelas: 1 },
@@ -36,17 +37,20 @@ function calcTaxaPagbank(metodo: string, parcelas: number): { taxa: number; rece
   }
 }
 
+const initialContaForm = { descricao: "", fornecedor: "", valor: "", data_vencimento: "" };
+const initialSimulador = { valor: "", metodo: "pix", parcelas: 1 };
+
 export function ContasPagarPage() {
   const queryClient = useQueryClient();
   const { role } = useSession();
   const canManage = role === "admin" || role === "gerente" || role === "atendente";
 
-  const [form, setForm] = useState({ descricao: "", fornecedor: "", valor: "", data_vencimento: "" });
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"todos" | "pendente" | "pago" | "alerta" | "vencido">("todos");
+  const [form, setForm, clearFormDraft] = usePersistedState("contas-pagar:form", initialContaForm);
+  const [search, setSearch] = usePersistedState<string>("contas-pagar:search", "");
+  const [filter, setFilter] = usePersistedState<"todos" | "pendente" | "pago" | "alerta" | "vencido">("contas-pagar:filter", "todos");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [sim, setSim] = useState({ valor: "", metodo: "pix", parcelas: 1 });
+  const [sim, setSim] = usePersistedState("contas-pagar:simulador", initialSimulador);
 
   const money = useMemo(() => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }), []);
 
@@ -69,7 +73,7 @@ export function ContasPagarPage() {
       queryClient.invalidateQueries({ queryKey: ["contas-resumo-page"] });
       queryClient.invalidateQueries({ queryKey: ["contas-vencimentos-page"] });
       setFeedback("Conta cadastrada com sucesso.");
-      setForm({ descricao: "", fornecedor: "", valor: "", data_vencimento: "" });
+      clearFormDraft(initialContaForm);
     },
     onError: (err) => setFeedback(err instanceof Error ? err.message : "Falha ao cadastrar conta.")
   });

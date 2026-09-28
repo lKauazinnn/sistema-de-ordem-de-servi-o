@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabase";
+import { getValidAccessToken, supabase } from "../../lib/supabase";
 import type { AssistenciaTecnicaProfile, UserFeatures, UserProfile, UserRole } from "../../types";
 
 type ManagedUser = UserProfile & {
@@ -23,8 +23,7 @@ type UpdateUserInput = {
 } & Partial<AssistenciaTecnicaProfile>;
 
 async function authHeaders() {
-  const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
+  const accessToken = await getValidAccessToken();
 
   if (!accessToken) {
     throw new Error("Sessao expirada. Faca login novamente.");

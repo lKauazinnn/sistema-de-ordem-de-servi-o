@@ -9,6 +9,9 @@ type Props = {
 export function RouteGuard({ allowedRoles }: Props) {
   const { loading, isAuthenticated, canAccess } = usePermissions();
 
+  // `loading` so e verdadeiro ate a primeira resolucao da sessao/perfil.
+  // Renovacoes de token nao reativam esse estado, entao a pagina em uso nunca e
+  // desmontada e o que o usuario digitou continua na tela.
   if (loading) {
     return <div className="p-8">Carregando...</div>;
   }

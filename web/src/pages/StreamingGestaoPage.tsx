@@ -10,22 +10,25 @@ import {
 } from "../modules/dashboard/service";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
+import { usePersistedState } from "../hooks/usePersistedState";
+
+const initialStreamingForm = {
+  cliente_nome: "",
+  servidor: "",
+  dispositivo: "",
+  aplicativo: "",
+  data_ativacao: "",
+  data_vencimento: ""
+};
 
 export function StreamingGestaoPage() {
   const queryClient = useQueryClient();
   const { role } = useSession();
   const canManage = role === "admin" || role === "gerente" || role === "atendente";
 
-  const [form, setForm] = useState({
-    cliente_nome: "",
-    servidor: "",
-    dispositivo: "",
-    aplicativo: "",
-    data_ativacao: "",
-    data_vencimento: ""
-  });
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"todos" | "pendente" | "pago" | "alerta" | "vencido">("todos");
+  const [form, setForm, clearFormDraft] = usePersistedState("streaming:form", initialStreamingForm);
+  const [search, setSearch] = usePersistedState<string>("streaming:search", "");
+  const [filter, setFilter] = usePersistedState<"todos" | "pendente" | "pago" | "alerta" | "vencido">("streaming:filter", "todos");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -48,7 +51,7 @@ export function StreamingGestaoPage() {
       queryClient.invalidateQueries({ queryKey: ["streaming-resumo-page"] });
       queryClient.invalidateQueries({ queryKey: ["streaming-vencimentos-page"] });
       setFeedback("Streaming cadastrado com sucesso.");
-      setForm({ cliente_nome: "", servidor: "", dispositivo: "", aplicativo: "", data_ativacao: "", data_vencimento: "" });
+      clearFormDraft(initialStreamingForm);
     },
     onError: (err) => setFeedback(err instanceof Error ? err.message : "Falha ao cadastrar streaming.")
   });

@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Save, Search, ShieldAlert, Trash2, Tv, UserCog, X } from "lucide-react";
 import { createManagedUser, deleteManagedUser, listManagedUsers, updateManagedUser } from "../modules/users/service";
 import { usePermissions } from "../hooks/usePermissions";
+import { usePersistedState } from "../hooks/usePersistedState";
 import { roleGroups } from "../lib/rbac";
+import { maskCelular, maskCnpj } from "../lib/masks";
 import type { UserRole } from "../types";
 
 type UserForm = {
@@ -42,10 +44,11 @@ export function UsuariosPage() {
   const queryClient = useQueryClient();
   const { role, hasRole } = usePermissions();
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState<UserForm>(initialForm);
-  const [inlineEdits, setInlineEdits] = useState<Record<string, Omit<UserForm, "email" | "password">>>({});
+  const [search, setSearch] = usePersistedState<string>("usuarios:search", "");
+  const [createModalOpen, setCreateModalOpen] = usePersistedState<boolean>("usuarios:modalAberto", false);
+  // A senha fica so na memoria; o resto do cadastro sobrevive a recarregamentos.
+  const [createForm, setCreateForm, clearCreateFormDraft] = usePersistedState<UserForm>("usuarios:createForm", initialForm, { omit: ["password"] });
+  const [inlineEdits, setInlineEdits] = usePersistedState<Record<string, Omit<UserForm, "email" | "password">>>("usuarios:inlineEdits", {});
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data: users = [], isLoading, isError, error } = useQuery({
@@ -59,7 +62,7 @@ export function UsuariosPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["managed-users"] });
       setCreateModalOpen(false);
-      setCreateForm(initialForm);
+      clearCreateFormDraft(initialForm);
       setFeedback("Usuario criado com sucesso.");
     },
     onError: (err) => setFeedback(err instanceof Error ? err.message : "Falha ao criar usuario.")
@@ -300,7 +303,8 @@ export function UsuariosPage() {
                       <td>
                         <input
                           value={edit.assistencia_cnpj}
-                          onChange={(event) => setEditableState(user.id, { assistencia_cnpj: event.target.value })}
+                          onChange={(event) => setEditableState(user.id, { assistencia_cnpj: maskCnpj(event.target.value) })}
+                          maxLength={18}
                           className="input-dark !h-9 !py-1.5"
                           placeholder="00.000.000/0000-00"
                         />
@@ -308,9 +312,10 @@ export function UsuariosPage() {
                       <td>
                         <input
                           value={edit.assistencia_telefone}
-                          onChange={(event) => setEditableState(user.id, { assistencia_telefone: event.target.value })}
+                          onChange={(event) => setEditableState(user.id, { assistencia_telefone: maskCelular(event.target.value) })}
+                          maxLength={15}
                           className="input-dark !h-9 !py-1.5"
-                          placeholder="(00) 00000-0000"
+                          placeholder="(00)0 0000-0000"
                         />
                       </td>
                       <td>
@@ -429,7 +434,8 @@ export function UsuariosPage() {
                 <span className="mb-1.5 block font-medium text-slate-300">CNPJ da assistencia</span>
                 <input
                   value={createForm.assistencia_cnpj}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_cnpj: event.target.value }))}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_cnpj: maskCnpj(event.target.value) }))}
+                  maxLength={18}
                   className="input-dark"
                   placeholder="00.000.000/0000-00"
                 />
@@ -438,9 +444,10 @@ export function UsuariosPage() {
                 <span className="mb-1.5 block font-medium text-slate-300">Telefone da assistencia</span>
                 <input
                   value={createForm.assistencia_telefone}
-                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_telefone: event.target.value }))}
+                  onChange={(event) => setCreateForm((current) => ({ ...current, assistencia_telefone: maskCelular(event.target.value) }))}
+                  maxLength={15}
                   className="input-dark"
-                  placeholder="(00) 00000-0000"
+                  placeholder="(00)0 0000-0000"
                 />
               </label>
               <label className="block text-sm">

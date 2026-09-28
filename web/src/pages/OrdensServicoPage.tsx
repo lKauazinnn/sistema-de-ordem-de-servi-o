@@ -5,6 +5,7 @@ import { createOs, criarNotaServico, deleteOs, deleteUltimaNotaPorOs, emitirNfe,
 import { gerarPdfOS } from "../lib/pdf";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
+import { usePersistedState } from "../hooks/usePersistedState";
 import { supabase } from "../lib/supabase";
 import { roleGroups } from "../lib/rbac";
 import type { Cliente, OrdemServico } from "../types";
@@ -66,15 +67,15 @@ const initialOsForm: OsFormState = {
 };
 
 export function OrdensServicoPage() {
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
+  const [search, setSearch] = usePersistedState<string>("os:search", "");
+  const [page, setPage] = usePersistedState<number>("os:page", 1);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [showOsModal, setShowOsModal] = useState(false);
-  const [editingOsId, setEditingOsId] = useState<string | null>(null);
-  const [osForm, setOsForm] = useState<OsFormState>(initialOsForm);
+  const [showOsModal, setShowOsModal] = usePersistedState<boolean>("os:modalAberto", false);
+  const [editingOsId, setEditingOsId] = usePersistedState<string | null>("os:editandoId", null);
+  const [osForm, setOsForm, clearOsFormDraft] = usePersistedState<OsFormState>("os:form", initialOsForm);
   const [imeiValidation, setImeiValidation] = useState<ValidationState>({ status: "idle", message: null });
-  const [notaModal, setNotaModal] = useState<NotaModalState | null>(null);
-  const [notaForm, setNotaForm] = useState<NotaFormState>(initialNotaForm);
+  const [notaModal, setNotaModal] = usePersistedState<NotaModalState | null>("os:notaModal", null);
+  const [notaForm, setNotaForm, clearNotaFormDraft] = usePersistedState<NotaFormState>("os:nota", initialNotaForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const { user, profile } = useSession();
   const queryClient = useQueryClient();
@@ -250,6 +251,7 @@ export function OrdensServicoPage() {
       }
       setShowOsModal(false);
       setEditingOsId(null);
+      clearOsFormDraft();
     } catch (err) {
       setFeedback(err instanceof Error ? err.message : "Falha ao salvar OS.");
     }
@@ -302,6 +304,7 @@ export function OrdensServicoPage() {
     try {
       const nota = await notaMutation.mutateAsync({ os_id: notaModal.osId, cliente_id: notaModal.clienteId, subtotal, descontos, impostos, forma_pagamento: notaForm.formaPagamento, garantia: notaForm.garantia, prazo: notaForm.prazo });
       setFeedback(`Nota #${nota.numero} criada. Total R$ ${Number(nota.total).toFixed(2)}.`);
+      clearNotaFormDraft(initialNotaForm);
       setNotaModal(null);
     } catch (err) { setFeedback(err instanceof Error ? err.message : "Falha ao criar nota."); }
   }

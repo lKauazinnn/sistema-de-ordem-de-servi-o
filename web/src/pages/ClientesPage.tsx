@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Plus, Search, Trash2, X } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../hooks/useSession";
+import { usePersistedState } from "../hooks/usePersistedState";
+import { maskCelular, maskCep, maskCpfCnpj } from "../lib/masks";
 import type { Cliente } from "../types";
 
 type ClienteFormState = {
@@ -34,11 +36,11 @@ export function ClientesPage() {
   const { user } = useSession();
   const isOwner = user?.email === "lkaua.lopes01@gmail.com" || user?.app_metadata?.role === "admin";
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = usePersistedState<string>("clientes:search", "");
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ClienteFormState>(initialClienteForm);
+  const [showModal, setShowModal] = usePersistedState<boolean>("clientes:modalAberto", false);
+  const [editingId, setEditingId] = usePersistedState<string | null>("clientes:editandoId", null);
+  const [form, setForm, clearFormDraft] = usePersistedState<ClienteFormState>("clientes:form", initialClienteForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({ queryKey: ["clientes"], queryFn: listClientes });
@@ -101,6 +103,7 @@ export function ClientesPage() {
       setFeedback(editingId ? "Cliente atualizado." : "Cliente criado.");
       setShowModal(false);
       setEditingId(null);
+      clearFormDraft();
     } catch (err) {
       setFeedback(err instanceof Error ? err.message : "Erro ao salvar.");
     }
@@ -194,11 +197,11 @@ export function ClientesPage() {
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">CPF/CNPJ</span>
-                <input value={form.cpf_cnpj} onChange={(e) => setForm((c) => ({ ...c, cpf_cnpj: e.target.value }))} className="input-dark" />
+                <input value={form.cpf_cnpj} onChange={(e) => setForm((c) => ({ ...c, cpf_cnpj: maskCpfCnpj(e.target.value) }))} maxLength={18} placeholder="000.000.000-00" className="input-dark" />
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">Telefone</span>
-                <input value={form.telefone} onChange={(e) => setForm((c) => ({ ...c, telefone: e.target.value }))} className="input-dark" />
+                <input value={form.telefone} onChange={(e) => setForm((c) => ({ ...c, telefone: maskCelular(e.target.value) }))} maxLength={15} placeholder="(00)0 0000-0000" className="input-dark" />
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">E-mail</span>
@@ -206,7 +209,7 @@ export function ClientesPage() {
               </label>
               <label className="block text-sm">
                 <span className="mb-1.5 block font-medium text-slate-300">CEP</span>
-                <input value={form.cep} onChange={(e) => setForm((c) => ({ ...c, cep: e.target.value }))} className="input-dark" />
+                <input value={form.cep} onChange={(e) => setForm((c) => ({ ...c, cep: maskCep(e.target.value) }))} maxLength={9} placeholder="00.000-00" className="input-dark" />
               </label>
               <label className="block text-sm sm:col-span-2">
                 <span className="mb-1.5 block font-medium text-slate-300">Endereço</span>

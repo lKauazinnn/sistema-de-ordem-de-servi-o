@@ -67,6 +67,22 @@ A seguranca e aplicada em duas camadas:
 - Frontend: guards de rotas por cargo
 - Banco: politicas RLS por role e ownership
 
+## Sessao e rascunhos (sem logout por tempo)
+
+O app foi ajustado para nunca derrubar o usuario nem apagar o que ele preencheu:
+
+- A sessao fica no `localStorage` e o token e renovado automaticamente, inclusive ao
+  voltar para a aba, ao reconectar a internet e antes de cada chamada as rotas `/api`.
+- Renovacao de token nao remonta mais as telas: o estado de "carregando" so existe no
+  primeiro carregamento, entao a pagina em uso nunca e descartada.
+- Formularios, buscas, filtros, abas e modais abertos sao gravados no navegador
+  (`usePersistedState`) e restaurados sem prazo de validade - o usuario pode voltar
+  horas ou dias depois que continua de onde parou. Senhas nunca sao gravadas.
+
+Importante: o tempo maximo da sessao tambem depende do painel do Supabase
+(Authentication > Sessions). Para que ninguem seja deslogado por tempo, deixe
+"Time-box user sessions" e "Inactivity timeout" vazios/desligados.
+
 ## Testes
 
 ```bash

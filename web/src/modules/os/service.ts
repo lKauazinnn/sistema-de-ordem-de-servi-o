@@ -1,4 +1,4 @@
-import { supabase } from "../../lib/supabase";
+import { getValidAccessToken, supabase } from "../../lib/supabase";
 import type { OrdemServico } from "../../types";
 import type { OsInput } from "./schema";
 
@@ -251,8 +251,7 @@ export async function createOs(input: OsInput) {
     return data as OrdemServico;
   }
 
-  const { data: sessionData } = await supabase.auth.getSession();
-  const accessToken = sessionData.session?.access_token;
+  const accessToken = await getValidAccessToken();
   if (!accessToken) {
     throw new Error("Sessao expirada. Faca login novamente.");
   }
@@ -309,8 +308,7 @@ export async function emitirNfe(input: {
   const useServerNfe = import.meta.env.VITE_USE_SERVER_NFE === "true";
 
   if (useServerNfe) {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
+    const accessToken = await getValidAccessToken();
     if (!accessToken) {
       throw new Error("Sessao expirada. Faca login novamente.");
     }

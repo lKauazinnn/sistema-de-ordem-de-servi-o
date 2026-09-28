@@ -4,6 +4,7 @@ import { ArrowDownCircle, ArrowUpCircle, ClipboardList, Edit3, Package, Plus, Se
 import { createProduto, deleteProduto, listProdutos, listSaidasEstoque, registrarEntradaManual, registrarSaidaManual, updateProduto } from "../modules/estoque/service";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
 import { useSession } from "../hooks/useSession";
+import { usePersistedState } from "../hooks/usePersistedState";
 import type { Produto } from "../types";
 
 type ProdutoFormState = {
@@ -48,13 +49,13 @@ export function EstoquePage() {
   const queryClient = useQueryClient();
   const { user } = useSession();
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState<"produtos" | "saidas">("produtos");
-  const [showModal, setShowModal] = useState(false);
-  const [showSaidaModal, setShowSaidaModal] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [produtoForm, setProdutoForm] = useState<ProdutoFormState>(initialProdutoForm);
-  const [saidaForm, setSaidaForm] = useState<SaidaFormState>(initialSaidaForm);
+  const [search, setSearch] = usePersistedState<string>("estoque:search", "");
+  const [activeTab, setActiveTab] = usePersistedState<"produtos" | "saidas">("estoque:tab", "produtos");
+  const [showModal, setShowModal] = usePersistedState<boolean>("estoque:modalAberto", false);
+  const [showSaidaModal, setShowSaidaModal] = usePersistedState<boolean>("estoque:modalSaidaAberto", false);
+  const [editingId, setEditingId] = usePersistedState<string | null>("estoque:editandoId", null);
+  const [produtoForm, setProdutoForm, clearProdutoFormDraft] = usePersistedState<ProdutoFormState>("estoque:produto", initialProdutoForm);
+  const [saidaForm, setSaidaForm, clearSaidaFormDraft] = usePersistedState<SaidaFormState>("estoque:saida", initialSaidaForm);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const isOwner = user?.email === "lkaua.lopes01@gmail.com" || user?.app_metadata?.role === "admin";
   useRealtimeChannel(["produtos"], "produtos");
@@ -141,7 +142,7 @@ export function EstoquePage() {
         numero_nf_saida: saidaForm.numeroNotaFiscal.trim()
       });
       setShowSaidaModal(false);
-      setSaidaForm(initialSaidaForm);
+      clearSaidaFormDraft(initialSaidaForm);
     } catch {
       // feedback tratado pela mutation
     }
@@ -185,7 +186,7 @@ export function EstoquePage() {
         }
         setFeedback("Produto criado.");
       }
-      setProdutoForm(initialProdutoForm);
+      clearProdutoFormDraft(initialProdutoForm);
       setShowModal(false);
       setEditingId(null);
     } catch (err) { setFeedback(err instanceof Error ? err.message : "Erro ao salvar."); }

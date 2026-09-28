@@ -58,6 +58,7 @@ import {
   getUltimasNotasServico
 } from "../modules/dashboard/service";
 import { useRealtimeChannel } from "../hooks/useRealtimeChannel";
+import { usePersistedState } from "../hooks/usePersistedState";
 
 const CHART_COLORS = ["#22d3ee", "#6366f1", "#34d399", "#f59e0b", "#f43f5e", "#a78bfa", "#fb923c"];
 
@@ -225,8 +226,8 @@ const STATUS_META: Record<string, { icon: LucideIcon; color: string; accent: str
 };
 
 export function DashboardPage() {
-  const [periodoResumo, setPeriodoResumo] = useState<30 | 60 | 90>(30);
-  const [mesesReceita, setMesesReceita] = useState<6 | 12>(6);
+  const [periodoResumo, setPeriodoResumo] = usePersistedState<30 | 60 | 90>("dashboard:periodoResumo", 30);
+  const [mesesReceita, setMesesReceita] = usePersistedState<6 | 12>("dashboard:mesesReceita", 6);
   const [legendOpacityKey, setLegendOpacityKey] = useState<string | null>(null);
 
   useRealtimeChannel(["dashboard-resumo"], "ordens_servico");
